@@ -58,3 +58,12 @@ window.addEventListener('table-state',()=>{
 const originalSoundToggle=$('soundButton').onclick;$('soundButton').onclick=()=>{originalSoundToggle();if(!sound)window.speechSynthesis?.cancel()};
 
 window.addEventListener('table-state',()=>{$('tableCenter').hidden=game?.mode==='deck';});
+
+function updateTablePreview(){const mode=modes[selectedMode],symbols={dice:['⚂','⚄','⚁'],deck:['K','◆','A'],poker:['♠','Q','♥'],roulette:['♥','★','♥']}[selectedMode];const descriptions={dice:'Read the odds. Raise the stakes.',deck:'Keep a straight face. Sell the lie.',poker:'One hand. A dangerous decision.',roulette:'Spin your luck. Bluff your rivals.'};
+ $('tablePreview').innerHTML='<span class="eyebrow">YOUR NEXT TABLE</span><div class="preview-felt '+selectedMode+'">'+symbols.map((v,i)=>'<span class="preview-piece" style="--piece:'+i+'">'+v+'</span>').join('')+'</div><h3>'+escapeHTML(mode.name)+'</h3><p>'+descriptions[selectedMode]+'</p>';
+ $('setupSummary').textContent=$('playerCount').value+' seats · '+$('rulesetSelect').value+($('onlineSetup').hidden?' · '+$('aiDifficulty').selectedOptions[0].text+' AI':' · Private online room');
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches)$('tablePreview').animate([{opacity:.3,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:260,easing:'ease-out'});
+}
+window.addEventListener('lobby-selection',updateTablePreview);
+['rulesetSelect','playerCount','aiDifficulty'].forEach(id=>$(id).addEventListener('change',updateTablePreview));
+['chooseSolo','chooseOnline'].forEach(id=>$(id).addEventListener('click',updateTablePreview));updateTablePreview();

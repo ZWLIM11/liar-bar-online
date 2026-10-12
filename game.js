@@ -16,12 +16,15 @@ const log=s=>{game.logSerial=(game.logSerial||0)+1;game.log.unshift(s);game.log=
 const say=s=>{game.message=s;log(s);render()};
 function tone(freq=360){if(!sound)return;try{const ctx=new (window.AudioContext||window.webkitAudioContext)(),o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=freq;g.gain.value=.026;o.connect(g);g.connect(ctx.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.13);o.stop(ctx.currentTime+.14)}catch{}}
 function setup(){
-  $('modeGrid').innerHTML=Object.entries(modes).map(([key,m])=>`<button class="mode-card ${selectedMode===key?'active':''}" data-mode="${key}"><span class="mode-icon">${m.icon}</span><span><strong>${m.name}</strong><small>${m.subtitle}</small></span></button>`).join('');
-  $('characterGrid').innerHTML=avatars.map((a,i)=>`<button class="character ${selectedAvatar===i?'active':''}" data-avatar="${i}" aria-label="Choose character ${i+1}"><span class="avatar">${a}</span><small>${['Ranger','Agent','Rogue','Veteran','Lady','Marshal'][i]}</small></button>`).join('');
+  const previousRuleset=$('rulesetSelect').value;
+  $('modeGrid').innerHTML=Object.entries(modes).map(([key,m])=>`<button class="mode-card ${selectedMode===key?'active':''}" data-mode="${key}" aria-pressed="${selectedMode===key}"><span class="mode-icon">${m.icon}</span><span><strong>${m.name}</strong><small>${m.subtitle}</small></span></button>`).join('');
+  $('characterGrid').innerHTML=avatars.map((a,i)=>`<button class="character ${selectedAvatar===i?'active':''}" data-avatar="${i}" aria-pressed="${selectedAvatar===i}" aria-label="Choose character ${i+1}"><span class="avatar">${a}</span><small>${['Ranger','Agent','Rogue','Veteran','Lady','Marshal'][i]}</small></button>`).join('');
   $('rulesetSelect').innerHTML=modes[selectedMode].rulesets.map(v=>`<option>${v}</option>`).join('');
+  if(modes[selectedMode].rulesets.includes(previousRuleset))$('rulesetSelect').value=previousRuleset;
   $('rulesSummary').innerHTML=`<span class="rule-tag">${modes[selectedMode].tag}</span><h3>${modes[selectedMode].name}</h3><ol>${modes[selectedMode].steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
-  $('modeGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedMode=b.dataset.mode;setup()});
-  $('characterGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedAvatar=+b.dataset.avatar;setup()});
+  $('modeGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedMode=b.dataset.mode;setup();$('modeGrid').querySelector('[data-mode="'+selectedMode+'"]').focus();tone(280)});
+  $('characterGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedAvatar=+b.dataset.avatar;setup();$('characterGrid').querySelector('[data-avatar="'+selectedAvatar+'"]').focus();tone(380)});
+  window.dispatchEvent(new CustomEvent('lobby-selection'));
 }
 function start(){
   if(onlineSession)return;window.dispatchEvent(new CustomEvent("table-reset"));localSeat=0;
@@ -44,7 +47,7 @@ function render(){
   $('playerRow').innerHTML=game.players.map((p,i)=>`<div class="player ${i===game.turn&&game.phase==='playing'?'turn':''} ${!p.alive?'dead':''}"><div class="player-head"><span class="avatar">${p.avatar}</span><span class="player-name">${escapeHTML(p.name)}</span></div><div class="player-stat">${status(p)}</div>${!onlineSession&&i>0?'<div class="ai-style">'+['Reader','Gambler','Trickster'][(i-1)%3]+'</div>':''}</div>`).join('');
   $('message').textContent=game.message;
   $('log').innerHTML=game.log.map(x=>`<li>${escapeHTML(x)}</li>`).join('');
-  const data=tableData();$('tableCenter').innerHTML=data.center;$('tableOverlay').innerHTML=data.overlay;
+  const data=tableData();$('tableCenter').innerHTML=data.center;$('tableCenter').hidden=game.mode==='deck';$('tableOverlay').innerHTML=data.overlay;
   $('privateArea').innerHTML=data.private;
   $('actionArea').innerHTML=data.actions;
   wireActions();
