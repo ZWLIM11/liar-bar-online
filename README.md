@@ -55,4 +55,8 @@ The full game must be deployed as a **Worker with Durable Objects**, using the i
 
 ## Build identification
 
-The landing page displays **FIRST-PERSON EDITION · BUILD 3**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
+The landing page displays **FIRST-PERSON EDITION · BUILD 4**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
+
+## Private hand interactions
+
+Dice roll inside a leather cup at the start of each round. Click the cup or **Lift cup · peek** to see your private roll; click again to cover it. Cards deal face down and **Flip cards · peek** reveals the faces. Each new round covers the hand automatically. Peek is purely visual and never rerolls or changes the authoritative hand. The smaller glass holds poison and drains as your two Dice lives are spent. Keyboard users can use the Peek button.

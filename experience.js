@@ -5,3 +5,10 @@ $('tableRules').onclick=()=>$('rulesButton').click();
 $('exitTable').onclick=async()=>{if(onlineSession){await roomCommand('leave');if(onlineSession)return}else act('lobby');document.body.classList.remove('in-game');window.scrollTo(0,0)};
 window.addEventListener('table-state',()=>{if(game){document.body.classList.add('in-game');window.scrollTo(0,0)}});
 if(new URLSearchParams(location.search).has('room')){$('entryNotice').textContent='You have a room invite. Enter your name and choose Play online.';}
+
+let handOpen=false,handRound=null,handMode=null;
+function setHandOpen(open){handOpen=!!open;document.body.classList.toggle('hand-open',handOpen);$('peekHand').setAttribute('aria-pressed',String(handOpen));const dice=game?.mode==='dice';$('peekHand').textContent=handOpen?(dice?'Cover dice':'Turn cards down'):(dice?'Lift cup · peek':'Flip cards · peek');$('handHint').textContent=handOpen?'Only you can see these':dice?'Click the cup or use Peek':'Click your cards or use Peek';window.dispatchEvent(new CustomEvent('hand-peek',{detail:{open:handOpen}}));}
+$('peekHand').onclick=()=>setHandOpen(!handOpen);
+window.addEventListener('request-peek',()=>setHandOpen(!handOpen));
+window.addEventListener('table-reset',()=>{handRound=null;handMode=null;setHandOpen(false)});
+window.addEventListener('table-state',()=>{if(!game)return;if(handRound!==game.round||handMode!==game.mode){handRound=game.round;handMode=game.mode;setHandOpen(false)}const canPeek=['dice','deck','poker'].includes(game.mode)&&game.players[localSeat].alive;$('peekHand').hidden=!canPeek;$('handHint').hidden=!canPeek;document.body.classList.toggle('peek-mode',canPeek);const p=game.players[localSeat];$('lifeMeter').textContent=game.mode==='dice'?('POISON  '+'●'.repeat(p.poison)+'○'.repeat(Math.max(0,2-p.poison))) :game.mode==='deck'?('CHAMBERS  '+p.pulls+' / 6'):'';});

@@ -63,8 +63,26 @@ let nose=sphere(.032,skin,0,1.83,-.23,g);nose.scale.set(.7,1,1);box(.085,.018,.0
  const dm=[1,2,3,4,5,6].map(diceMat);
  for(let i=0;i<5;i++){let d=box(.2,.2,.2,[dm[0],dm[5],dm[i],dm[6-i-1],dm[1],dm[4]],(i-2)*.26,1.17,1.78);dice.push(d)}
  const cardBack=mat('#852d23');for(let i=0;i<5;i++){let c=box(.34,.014,.5,cardBack,(i-2)*.28,1.08,1.68);c.rotation.y=(i-2)*.08;cards.push(c)}
- for(let i=0;i<4;i++){let a=i*Math.PI/2;cyl(.18,.14,.3,mat('#593a21'),Math.sin(a)*2.22,1.2,Math.cos(a)*2.22);cyl(.105,.085,.27,mat('#b47a28',.15,.2),Math.sin(a+.25)*2.3,1.18,Math.cos(a+.25)*2.3)}
+ for(let i=1;i<4;i++){let a=i*Math.PI/2;cyl(.18,.14,.3,mat('#593a21'),Math.sin(a)*2.22,1.2,Math.cos(a)*2.22);cyl(.105,.085,.27,mat('#b47a28',.15,.2),Math.sin(a+.25)*2.3,1.18,Math.cos(a+.25)*2.3)}
  const personal=new T.Group();scene.add(personal);[...dice,...cards].forEach(m=>personal.attach(m));const ownGun=gun(scene,0,0,0);ownGun.visible=false;ownGun.scale.setScalar(.7);const fill=new T.PointLight('#b6c6e0',1.5,3);fill.position.set(-.3,.3,-.2);camera.add(fill);
+
+ // The player's leather cup actually covers a compact group of five dice.
+ const cup=new T.Group();personal.add(cup);cup.position.set(0,1.05,1.7);
+ const leather=mat('#432619',.9),seam=mat('#bd8b50',.75);
+ mesh(new T.CylinderGeometry(.32,.36,.55,48,1,true),leather,0,.275,0,cup);
+ cyl(.32,.32,.035,leather,0,.55,0,cup);
+ for(const y of [.035,.49]){let ring=mesh(new T.TorusGeometry(y<.1?.357:.327,.012,8,48),seam,0,y,0,cup);ring.rotation.x=Math.PI/2;}
+ const poisonGlass=new T.Group();personal.add(poisonGlass);poisonGlass.position.set(.76,1.055,1.91);
+ const glass=new T.MeshPhysicalMaterial({color:'#baa889',transparent:true,opacity:.25,roughness:.08,metalness:.05,side:T.DoubleSide});
+ mesh(new T.CylinderGeometry(.12,.095,.3,32,1,true),glass,0,.15,0,poisonGlass);cyl(.095,.095,.018,glass,0,.01,0,poisonGlass);
+ let glassRim=mesh(new T.TorusGeometry(.12,.008,8,40),brass,0,.3,0,poisonGlass);glassRim.rotation.x=Math.PI/2;
+ const poisonLiquid=cyl(.107,.09,.20,mat('#668744',.22),0,.11,0,poisonGlass);
+ const cardTextures=new Map();function cardFace(label){if(cardTextures.has(label))return cardTextures.get(label);let c=document.createElement('canvas');c.width=256;c.height=384;let x=c.getContext('2d');x.fillStyle='#e5d6b6';x.fillRect(0,0,256,384);x.strokeStyle='#9b794d';x.lineWidth=9;x.strokeRect(12,12,232,360);x.fillStyle=/[♥♦]/.test(label)?'#962d25':'#261c14';x.font='bold 57px Georgia';x.fillText(label,25,76);x.textAlign='center';x.font='bold 94px Georgia';x.fillText(label,128,232);let map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;const material=new T.MeshStandardMaterial({map,roughness:.78});cardTextures.set(label,material);return material}
+ let privateOpen=false,peekAmount=0,tableMode='dice',roundStart=0,sceneRound=null,handSize=5;
+ window.addEventListener('hand-peek',e=>privateOpen=e.detail.open);
+ const raycaster=new T.Raycaster(),pointer=new T.Vector2();let tapStart=null;
+ renderer.domElement.addEventListener('pointerdown',e=>tapStart=[e.clientX,e.clientY]);
+ renderer.domElement.addEventListener('pointerup',e=>{if(!tapStart||Math.hypot(e.clientX-tapStart[0],e.clientY-tapStart[1])>8)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const targets=tableMode==='dice'?[cup,...dice]:cards.filter(c=>c.visible);if(raycaster.intersectObjects(targets,true).length)window.dispatchEvent(new CustomEvent('request-peek'));else if(raycaster.intersectObject(poisonGlass,true).length){document.getElementById('sceneEvent').textContent=tableMode==='dice'?'Poison glass · two drinks eliminate you':'Your glass';}});
  const hands=new T.Group();scene.add(hands);for(const side of [-1,1]){let sleeve=mesh(new T.CapsuleGeometry(.085,.46,5,16),mat('#49352a'),side*.47,1.16,2.78,hands);sleeve.rotation.x=Math.PI/2;hand(hands,side*.47,1.21,2.45)}
  const gripHand=hand(ownGun,0,-.16,.16);gripHand.rotation.x=1.1;gripHand.rotation.z=1.4;
  let yaw=0,pitch=-.16,zoom=65,view='seat',drag=null,time=0,currentSeat=0,playerCount=4,effect=null,prev=null,mutedMotion=false;
@@ -86,19 +104,28 @@ let nose=sphere(.032,skin,0,1.83,-.23,g);nose.scale.set(.7,1,1);box(.085,.018,.0
  const effectQueue=[];
  function fire(kind,who){if(effect&&(effect.kind==='shot'||effect.kind==='click')){if(kind==='shot'||kind==='click')effectQueue.push({kind,who});return}effect={kind,who,start:performance.now(),sounded:false};if(kind==='shot'||kind==='click'){window.cinematicUntil=performance.now()+3000;document.body.classList.add('is-cinematic');}document.getElementById('sceneEvent').textContent=kind==='shot'||kind==='click'?'One deep breath…':kind==='drink'?'Poison taken':kind==='card'?'Cards on the table':'Dice rolled';if(kind!=='shot'&&kind!=='click')window.gameAudio?.(kind)}
  document.getElementById('rehearseShot').onclick=()=>fire('shot',currentSeat);
- window.addEventListener('table-reset',()=>{prev=null;effect=null;effectQueue.length=0;document.body.classList.remove('is-cinematic')});
- window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;
+ window.addEventListener('table-reset',()=>{prev=null;sceneRound=null;privateOpen=false;effect=null;effectQueue.length=0;document.body.classList.remove('is-cinematic')});
+ window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;tableMode=g.mode;if(sceneRound!==g.round||prev?.mode!==g.mode){sceneRound=g.round;roundStart=performance.now();privateOpen=false;peekAmount=0;}
   playerGroups.forEach((p,i)=>{p.visible=i<g.players.length&&(view!=='seat'||i!==currentSeat);p.userData.alive=g.players[i]?.alive!==false});
-  let mine=g.players[currentSeat];for(let i=0;i<5;i++){dice[i].visible=g.mode==='dice';if(mine?.dice?.[i])dice[i].material[2]=dm[mine.dice[i]-1];cards[i].visible=g.mode==='deck'&&i<(mine?.hand?.length||0)||g.mode==='poker'&&i<2}
+  let mine=g.players[currentSeat];handSize=g.mode==='poker'?2:(mine?.hand?.length||0);cup.visible=g.mode==='dice';poisonGlass.visible=g.mode==='dice';poisonLiquid.scale.y=Math.max(.02,1-(mine?.poison||0)/2);poisonLiquid.position.y=.015+.1*poisonLiquid.scale.y;
+  for(let i=0;i<5;i++){dice[i].visible=g.mode==='dice';dice[i].scale.setScalar(.65);if(mine?.dice?.[i])dice[i].material[2]=dm[mine.dice[i]-1];cards[i].visible=['deck','poker'].includes(g.mode)&&i<handSize;if(cards[i].visible){let label=g.mode==='poker'?mine.cards[i]?.label:mine.hand[i];cards[i].material=[cardBack,cardBack,cardFace(String(label||'')),cardBack,cardBack,cardBack];}}
+
   if(prev){for(const event of sceneEvents(g,prev))fire(event.kind,event.who)}else fire(g.mode==='dice'?'roll':'card',currentSeat);prev={round:g.round,mode:g.mode,log:[...g.log]};
 
  });
  function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;time=now*.001;const a=currentSeat*Math.PI/2;
   hands.rotation.y=a;personal.rotation.y=a;ownGun.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');p.rotation.z=p.userData.alive===false?.2:0;p.position.y=p.userData.alive===false?-.45:Math.sin(time*.8+i)*.006});
   if(view==='seat'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(yaw+a)*6,5+pitch*2,Math.cos(yaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
+
+  const dealTime=(now-roundStart)/1000;peekAmount+=(Number(privateOpen)-peekAmount)*(mutedMotion?1:.14);
+  const rolling=tableMode==='dice'&&dealTime<1.5;poisonGlass.position.set(.76,1.055,1.91);poisonGlass.rotation.z=0;
+  cup.position.set(rolling&&!mutedMotion?Math.sin(dealTime*35)*.035:0,1.05+peekAmount*.52,1.7-peekAmount*.2);cup.rotation.z=rolling&&!mutedMotion?Math.sin(dealTime*30)*.1:peekAmount*-.24;
+  dice.forEach((d,i)=>{d.position.set((i%3-1)*.16,1.13,1.66+Math.floor(i/3)*.17);d.visible=tableMode==='dice'&&(privateOpen||peekAmount>.15);d.rotation.set(0,0,0);if(rolling&&!mutedMotion){d.position.y+=Math.abs(Math.sin(dealTime*17+i))*.12;d.rotation.set(dealTime*12+i,dealTime*9,dealTime*15)}});
+  cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;c.position.set((i-(handSize-1)/2)*.24*ease,1.08+Math.sin(t*Math.PI)*.25,1.12+ease*.53);c.rotation.set(Math.PI*(1-peekAmount), (i-(handSize-1)/2)*.08,0);});
   camera.fov=zoom;camera.updateProjectionMatrix();flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,0,0);g.position.set(.63,1.07,-.85)});smoke.forEach(s=>s.material.opacity=0);
   if(effect){let dt=(now-effect.start)/1000;if(dt>3){effect=null;document.body.classList.remove('is-cinematic');document.getElementById('sceneEvent').textContent='';if(effectQueue.length){let next=effectQueue.shift();fire(next.kind,next.who)}}else{
    const firstPerson=effect.who===currentSeat&&view==='seat',gun=firstPerson?ownGun:guns[effect.who];
+   if(effect.kind==='drink'&&effect.who===currentSeat&&!mutedMotion){const lift=Math.sin(Math.min(1,dt/2)*Math.PI);poisonGlass.position.set(.76-lift*.3,1.055+lift*.55,1.91+lift*.55);poisonGlass.rotation.z=-lift*.5;}
    if(effect.kind==='shot'||effect.kind==='click'){
     const pose=shotPose(dt);gun.userData.cylinder.rotation.z=pose.cock*Math.PI/3;gun.userData.hammer.rotation.x=-.4-pose.cock*.6;
     gun.position.set(.63-pose.lift*.31,1.07+pose.lift*.72,-.85+pose.lift*.55);gun.rotation.set(-pose.lift*.1,-pose.lift*1.4,pose.recoil*.3);
@@ -109,8 +136,8 @@ let nose=sphere(.032,skin,0,1.83,-.23,g);nose.scale.set(.7,1,1);box(.085,.018,.0
     if(effect.kind==='shot'&&pose.flash&&!mutedMotion){gun.userData.flash.visible=true;flashLight.intensity=85;camera.rotation.z=pose.recoil*.012;}
     if(effect.kind==='shot'&&dt>=1.3&&!mutedMotion)smoke.forEach((p,i)=>{const t=dt-1.3;p.position.copy(flashLight.position);p.position.y+=t*.3+i*.012;p.position.x+=Math.sin(i*2.4)*t*.12;p.scale.setScalar(.15+t*.28+i*.02);p.material.opacity=Math.max(0,.8-t*.4)})
    }
-   if(effect.kind==='roll'&&!mutedMotion)dice.forEach((d,i)=>{d.position.y=1.17+Math.abs(Math.sin(dt*10+i))*.25*Math.max(0,1-dt);d.rotation.z=dt<1?dt*10:0});
-   if(effect.kind==='card'&&!mutedMotion)cards.forEach(c=>c.position.y=1.08+Math.sin(Math.min(dt,1)*Math.PI)*.12);
+
+
   }}
 
   renderer.render(scene,camera);
