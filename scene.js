@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.min.js';
+import {cartoonPerson,cartoonHand,cartoonRevolver} from './cartoon-models.js';
 import {shotPose,sceneEvents} from './scene-events.js';
 const host=document.getElementById('sceneHost');
 try { init(); } catch(error) { host.classList.add('scene-fallback');document.getElementById('viewHint').textContent='3D unavailable: enable hardware acceleration and reload.';console.warn('3D renderer unavailable:',error.message); }
@@ -22,8 +23,8 @@ function init(){
  cyl(2.95,2.8,.23,wood,0,.9,0);cyl(2.7,2.7,.025,felt,0,1.03,0);cyl(.48,.75,.85,wood,0,.4,0);
  const rim=mesh(new T.TorusGeometry(2.77,.045,12,90),brass,0,1.04,0);rim.rotation.x=Math.PI/2;
  const lamp=cyl(.17,.25,.4,brass,0,1.25,0);sphere(.13,new T.MeshStandardMaterial({color:'#ffb345',emissive:'#ff8219',emissiveIntensity:3}),0,1.58,0);
- const light=new T.PointLight('#ffb355',42,10,2);light.position.set(0,2.5,.1);light.castShadow=true;light.shadow.mapSize.set(1024,1024);scene.add(light);scene.add(new T.HemisphereLight('#e8c69a','#28140e',1.6));
- for(const x of [-5,5]){let l=new T.PointLight('#ff752b',65,13);l.position.set(x,3,-6);scene.add(l);cyl(.6,.1,.25,brass,x,3.5,-6)}
+ const light=new T.PointLight('#ffd4a0',30,10,2);light.position.set(0,2.5,.1);light.castShadow=true;light.shadow.mapSize.set(1024,1024);scene.add(light);scene.add(new T.HemisphereLight('#e4e7f0','#473329',2.1));
+ for(const x of [-5,5]){let l=new T.PointLight('#ffab69',42,13);l.position.set(x,3,-6);scene.add(l);cyl(.6,.1,.25,brass,x,3.5,-6)}
 
  // Ceiling beams, windows and secondary tables give free-look a complete room.
  box(22,.18,22,wood,0,6.8,0);box(22,7,.25,wood,0,3.4,9);
@@ -33,38 +34,16 @@ function init(){
  for(const x of [-6,6]){cyl(1.2,1.15,.14,wood,x,.9,3.7);cyl(.15,.35,.85,wood,x,.4,3.7);for(const dx of [-1.4,1.4]){box(.65,.12,.65,wood,x+dx,.5,3.7);box(.65,.9,.09,wood,x+dx,1,4);}}
  const warmGlass=mat('#6c542c',.12,.3);for(const a of [0,1,2,3].map(x=>x*Math.PI/2)){let x=Math.sin(a+.3)*2.2,z=Math.cos(a+.3)*2.2;cyl(.07,.08,.45,warmGlass,x,1.28,z);cyl(.033,.04,.19,brass,x,1.59,z)}
  let playerGroups=[],guns=[],dice=[],cards=[];
- function gun(parent,x,y,z){
-  const g=new T.Group();g.position.set(x,y,z);parent.add(g);
-  const steel=mat('#626169',.32,.65),edge=mat('#a6a1a0',.23,.75),grip=mat('#3a1c10',.7);
-  let barrel=cyl(.046,.048,.48,steel,0,.035,-.24,g);barrel.rotation.x=Math.PI/2;
-  let bore=mesh(new T.RingGeometry(.024,.047,32),edge,0,.035,-.485,g);bore.rotation.y=Math.PI;
-  mesh(new T.CircleGeometry(.024,24),mat('#030303'),0,.035,-.484,g).rotation.y=Math.PI;
-  box(.075,.035,.43,steel,0,.075,-.22,g);box(.018,.042,.045,dark,0,.105,-.43,g);
-  const cylinder=new T.Group();cylinder.position.set(0,.005,.055);g.add(cylinder);
-  cyl(.083,.083,.16,steel,0,0,0,cylinder).rotation.x=Math.PI/2;
-  for(let i=0;i<6;i++){let a=i*Math.PI/3;let c=cyl(.021,.021,.165,dark,Math.sin(a)*.059,Math.cos(a)*.059,0,cylinder);c.rotation.x=Math.PI/2;sphere(.014,brass,Math.sin(a)*.054,Math.cos(a)*.054,.084,cylinder)}
-  box(.035,.15,.24,steel,-.076,0,.06,g);box(.035,.15,.24,steel,.076,0,.06,g);box(.11,.035,.25,steel,0,.09,.06,g);
-  let handle=box(.1,.23,.095,grip,0,-.17,.15,g);handle.rotation.x=-.28;
-  for(let y=-.24;y<-.08;y+=.025)box(.104,.004,.065,edge,0,y,.177,g);
-  let guard=mesh(new T.TorusGeometry(.07,.009,8,24),steel,0,-.115,.015,g);guard.rotation.y=Math.PI/2;guard.scale.y=1.1;
-  box(.017,.065,.014,edge,0,-.08,.022,g).rotation.x=.35;let hammer=box(.026,.065,.055,steel,0,.12,.17,g);hammer.rotation.x=-.4;
-  const flash=new T.Group();flash.position.set(0,.035,-.5);g.add(flash);let flame=mesh(new T.ConeGeometry(.09,.35,9),new T.MeshBasicMaterial({color:'#ffd060',transparent:true,opacity:.85,blending:T.AdditiveBlending,depthWrite:false}),0,0,-.12,flash);flame.rotation.x=-Math.PI/2;sphere(.07,new T.MeshBasicMaterial({color:'#fffce3'}),0,0,0,flash);flash.visible=false;
-  g.userData={flash,cylinder,hammer};return g;
- }
- function hand(parent,x,y,z,rotation=0){const g=new T.Group();g.position.set(x,y,z);g.rotation.z=rotation;parent.add(g);let palm=sphere(.085,skin,0,0,0,g);palm.scale.set(.8,.48,1.25);for(let i=0;i<4;i++){let f=mesh(new T.CapsuleGeometry(.018,.09,4,8),skin,(i-1.5)*.035,0,-.10,g);f.rotation.x=Math.PI/2;let nail=box(.018,.004,.027,ivory,(i-1.5)*.035,.022,-.145,g)}let thumb=mesh(new T.CapsuleGeometry(.023,.07,4,8),skin,.077,-.01,-.025,g);thumb.rotation.z=.7;thumb.rotation.x=1;return g}
- function person(angle,index){let g=new T.Group();g.position.set(Math.sin(angle)*3.15,0,Math.cos(angle)*3.15);g.rotation.y=angle+0;scene.add(g);let clothes=mat(['#342c29','#3f2730','#243238','#674730'][index]);
-  box(.9,.2,.85,wood,0,.5,0,g);box(.95,1.2,.14,wood,0,1,.38,g);cyl(.37,.3,.83,clothes,0,1.12,0,g);let head=sphere(.19,skin,0,1.87,-.04,g);head.scale.set(.86,1.2,.92);sphere(.17,mat('#261811'),0,1.99,.015,g);cyl(.37,.38,.05,wood,0,2.05,-.04,g);cyl(.24,.26,.22,wood,0,2.17,-.04,g);
-  for(const side of [-1,1]){let arm=mesh(new T.CapsuleGeometry(.095,.36,5,12),clothes,side*.42,1.27,-.12,g);arm.rotation.x=-.65;let fore=mesh(new T.CapsuleGeometry(.09,.42,5,12),clothes,side*.4,1.09,-.48,g);fore.rotation.x=Math.PI/2;hand(g,side*.4,1.1,-.79);box(.23,.58,.27,clothes,side*.21,.43,-.15,g)}
-  for(const side of [-1,1]){sphere(.04,skin,side*.175,1.87,-.04,g);sphere(.014,ivory,side*.08,1.89,-.21,g);sphere(.008,dark,side*.08,1.89,-.23,g);box(.09,.025,.025,dark,side*.08,1.935,-.218,g)}
-let nose=sphere(.032,skin,0,1.83,-.23,g);nose.scale.set(.7,1,1);box(.085,.018,.015,dark,0,1.755,-.215,g);cyl(.1,.12,.17,skin,0,1.62,-.02,g);for(let y=1;y<1.5;y+=.12)sphere(.013,brass,0,y,-.33,g);box(.05,.5,.035,trim,0,1.22,-.33,g);g.userData.baseY=0;playerGroups.push(g);guns.push(gun(g,.63,1.07,-.85));return g;
- }
+ function gun(parent,x,y,z){const g=cartoonRevolver();g.position.set(x,y,z);parent.add(g);return g}
+ function hand(parent,x,y,z,rotation=0){const h=cartoonHand(parent,x,y,z);h.rotation.z=rotation;return h}
+ function person(angle,index){const g=cartoonPerson(index);g.position.set(Math.sin(angle)*3.15,0,Math.cos(angle)*3.15);g.rotation.y=angle;scene.add(g);playerGroups.push(g);guns.push(gun(g,.63,1.13,-.85));return g}
  for(let i=0;i<4;i++)person(i*Math.PI/2,i);
  function diceMat(face){let c=document.createElement('canvas');c.width=c.height=128;let x=c.getContext('2d');x.fillStyle='#ead8af';x.fillRect(0,0,128,128);x.strokeStyle='#bca078';x.lineWidth=8;x.strokeRect(3,3,122,122);const spots={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};x.fillStyle='#2a180f';for(let [a,b]of spots[face]){x.beginPath();x.arc(64+a*31,64+b*31,10,0,Math.PI*2);x.fill()}let t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return new T.MeshStandardMaterial({map:t,roughness:.35})}
  const dm=[1,2,3,4,5,6].map(diceMat);
  for(let i=0;i<5;i++){let d=box(.2,.2,.2,[dm[0],dm[5],dm[i],dm[6-i-1],dm[1],dm[4]],(i-2)*.26,1.17,1.78);dice.push(d)}
  const cardBack=mat('#852d23');for(let i=0;i<5;i++){let c=box(.34,.014,.5,cardBack,(i-2)*.28,1.08,1.68);c.rotation.y=(i-2)*.08;cards.push(c)}
  for(let i=1;i<4;i++){let a=i*Math.PI/2;cyl(.18,.14,.3,mat('#593a21'),Math.sin(a)*2.22,1.2,Math.cos(a)*2.22);cyl(.105,.085,.27,mat('#b47a28',.15,.2),Math.sin(a+.25)*2.3,1.18,Math.cos(a+.25)*2.3)}
- const personal=new T.Group();scene.add(personal);[...dice,...cards].forEach(m=>personal.attach(m));const ownGun=gun(scene,0,0,0);ownGun.visible=false;ownGun.scale.setScalar(.7);const fill=new T.PointLight('#b6c6e0',1.5,3);fill.position.set(-.3,.3,-.2);camera.add(fill);
+ const personal=new T.Group();scene.add(personal);[...dice,...cards].forEach(m=>personal.attach(m));const ownGun=gun(scene,0,0,0);ownGun.visible=true;ownGun.scale.setScalar(.9);const fill=new T.PointLight('#b6c6e0',1.5,3);fill.position.set(-.3,.3,-.2);camera.add(fill);
 
  // The player's leather cup actually covers a compact group of five dice.
  const cup=new T.Group();personal.add(cup);cup.position.set(0,1.05,1.7);
@@ -114,7 +93,7 @@ let nose=sphere(.032,skin,0,1.83,-.23,g);nose.scale.set(.7,1,1);box(.085,.018,.0
 
  });
  function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;time=now*.001;const a=currentSeat*Math.PI/2;
-  hands.rotation.y=a;personal.rotation.y=a;ownGun.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');p.rotation.z=p.userData.alive===false?.2:0;p.position.y=p.userData.alive===false?-.45:Math.sin(time*.8+i)*.006});
+  hands.rotation.y=a;personal.rotation.y=a;if(ownGun.parent!==personal)personal.add(ownGun);ownGun.visible=true;ownGun.position.set(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);ownGun.rotation.set(0,-.55,Math.PI/2);ownGun.scale.setScalar(.9);ownGun.userData.flash.visible=false;ownGun.userData.hammer.rotation.x=-.4;gripHand.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');const blink=!mutedMotion&&Math.sin(time*.68+i*1.7)>.997;p.userData.eyes.scale.y=blink?.12:1;p.rotation.z=p.userData.alive===false?.2:0;p.position.y=p.userData.alive===false?-.45:Math.sin(time*.8+i)*.006});
   if(view==='seat'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(yaw+a)*6,5+pitch*2,Math.cos(yaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
 
   const dealTime=(now-roundStart)/1000;peekAmount+=(Number(privateOpen)-peekAmount)*(mutedMotion?1:.14);
@@ -129,8 +108,8 @@ let nose=sphere(.032,skin,0,1.83,-.23,g);nose.scale.set(.7,1,1);box(.085,.018,.0
    if(effect.kind==='shot'||effect.kind==='click'){
     const pose=shotPose(dt);gun.userData.cylinder.rotation.z=pose.cock*Math.PI/3;gun.userData.hammer.rotation.x=-.4-pose.cock*.6;
     gun.position.set(.63-pose.lift*.31,1.07+pose.lift*.72,-.85+pose.lift*.55);gun.rotation.set(-pose.lift*.1,-pose.lift*1.4,pose.recoil*.3);
-    if(firstPerson){ownGun.visible=true;ownGun.userData.flash.visible=false;camera.add(ownGun);gun.position.set(.28,-.42+pose.lift*.3,-.7+pose.lift*.18+pose.recoil*.09);gun.rotation.set(.08+pose.recoil*.3,pose.lift*-.7,-.12-pose.lift*.12);hands.visible=false;}
-    else if(ownGun.parent===camera){scene.attach(ownGun)}
+    if(firstPerson){ownGun.scale.setScalar(.7);gripHand.visible=true;ownGun.visible=true;ownGun.userData.flash.visible=false;camera.add(ownGun);gun.position.set(.28,-.42+pose.lift*.3,-.7+pose.lift*.18+pose.recoil*.09);gun.rotation.set(.08+pose.recoil*.3,pose.lift*-.7,-.12-pose.lift*.12);hands.visible=false;}
+
     if(dt>=1.3&&!effect.sounded){effect.sounded=true;window.gameAudio?.(effect.kind);document.getElementById('sceneEvent').textContent=effect.kind==='shot'?'BANG':'Click. Still breathing.'}
     gun.updateWorldMatrix(true,true);gun.userData.flash.getWorldPosition(flashLight.position);
     if(effect.kind==='shot'&&pose.flash&&!mutedMotion){gun.userData.flash.visible=true;flashLight.intensity=85;camera.rotation.z=pose.recoil*.012;}

@@ -55,8 +55,12 @@ The full game must be deployed as a **Worker with Durable Objects**, using the i
 
 ## Build identification
 
-The landing page displays **FIRST-PERSON EDITION · BUILD 4**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
+The landing page displays **FIRST-PERSON EDITION · BUILD 5**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
 
 ## Private hand interactions
 
 Dice roll inside a leather cup at the start of each round. Click the cup or **Lift cup · peek** to see your private roll; click again to cover it. Cards deal face down and **Flip cards · peek** reveals the faces. Each new round covers the hand automatically. Peek is purely visual and never rerolls or changes the authoritative hand. The smaller glass holds poison and drains as your two Dice lives are spent. Keyboard users can use the Peek button.
+
+## Cartoon art update
+
+Build 5 uses smooth cartoon heads, rounded clothing, expressive eyes with idle blinks, soft hats, and rounded hands without protruding fingernails. A beveled silver revolver with wooden grip, brass trigger guard and visible cylinder rests to the right of your cup throughout play. It is lifted into first-person view for the existing shot sequence.
