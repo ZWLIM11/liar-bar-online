@@ -81,7 +81,7 @@ function init(){
  document.getElementById('motionButton').textContent=mutedMotion?'Effects: gentle':'Effects: cinematic';
  document.getElementById('fullView').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.getElementById('gameScreen').requestFullscreen?.()};
  const effectQueue=[];
- function fire(kind,who){if(effect&&(effect.kind==='shot'||effect.kind==='click')){if(kind==='shot'||kind==='click')effectQueue.push({kind,who});return}effect={kind,who,start:performance.now(),sounded:false};if(kind==='shot'||kind==='click'){window.cinematicUntil=performance.now()+3000;document.body.classList.add('is-cinematic');}document.getElementById('sceneEvent').textContent=kind==='shot'||kind==='click'?'One deep breath…':kind==='drink'?'Poison taken':kind==='card'?'Cards on the table':'Dice rolled';if(kind!=='shot'&&kind!=='click')window.gameAudio?.(kind)}
+ function fire(kind,who){if(effect&&(effect.kind==='shot'||effect.kind==='click')){if(kind==='shot'||kind==='click')effectQueue.push({kind,who});return}effect={kind,who,start:performance.now(),sounded:false};if(kind==='shot'||kind==='click'){window.cinematicUntil=performance.now()+3500;document.body.classList.add('is-cinematic');}document.getElementById('sceneEvent').textContent=kind==='shot'||kind==='click'?'One deep breath…':kind==='drink'?'Poison taken':kind==='card'?'Cards on the table':'Dice rolled';if(kind!=='shot'&&kind!=='click')window.gameAudio?.(kind)}
  document.getElementById('rehearseShot').onclick=()=>fire('shot',currentSeat);
  window.addEventListener('table-reset',()=>{prev=null;sceneRound=null;privateOpen=false;effect=null;effectQueue.length=0;document.body.classList.remove('is-cinematic')});
  window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;tableMode=g.mode;if(sceneRound!==g.round||prev?.mode!==g.mode){sceneRound=g.round;roundStart=performance.now();privateOpen=false;peekAmount=0;}
@@ -102,18 +102,28 @@ function init(){
   dice.forEach((d,i)=>{d.position.set((i%3-1)*.16,1.13,1.66+Math.floor(i/3)*.17);d.visible=tableMode==='dice'&&(privateOpen||peekAmount>.15);d.rotation.set(0,0,0);if(rolling&&!mutedMotion){d.position.y+=Math.abs(Math.sin(dealTime*17+i))*.12;d.rotation.set(dealTime*12+i,dealTime*9,dealTime*15)}});
   cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;c.position.set((i-(handSize-1)/2)*.24*ease,1.08+Math.sin(t*Math.PI)*.25,1.12+ease*.53);c.rotation.set(Math.PI*(1-peekAmount), (i-(handSize-1)/2)*.08,0);});
   camera.fov=zoom;camera.updateProjectionMatrix();flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,0,0);g.position.set(.63,1.07,-.85)});smoke.forEach(s=>s.material.opacity=0);
-  if(effect){let dt=(now-effect.start)/1000;if(dt>3){effect=null;document.body.classList.remove('is-cinematic');document.getElementById('sceneEvent').textContent='';if(effectQueue.length){let next=effectQueue.shift();fire(next.kind,next.who)}}else{
+  if(effect){let dt=(now-effect.start)/1000;if(dt>3.5){effect=null;document.body.classList.remove('is-cinematic');document.getElementById('sceneEvent').textContent='';if(effectQueue.length){let next=effectQueue.shift();fire(next.kind,next.who)}}else{
    const firstPerson=effect.who===currentSeat&&view==='seat',gun=firstPerson?ownGun:guns[effect.who];
    if(effect.kind==='drink'&&effect.who===currentSeat&&!mutedMotion){const lift=Math.sin(Math.min(1,dt/2)*Math.PI);poisonGlass.position.set(.76-lift*.3,1.055+lift*.55,1.91+lift*.55);poisonGlass.rotation.z=-lift*.5;}
    if(effect.kind==='shot'||effect.kind==='click'){
-    const pose=shotPose(dt);gun.userData.cylinder.rotation.z=pose.cock*Math.PI/3;gun.userData.hammer.rotation.x=-.4-pose.cock*.6;
+    const pose=shotPose(dt);if(effect.kind==='click'){pose.recoil=0;pose.settle=0;}gun.userData.cylinder.rotation.z=pose.cock*Math.PI/3;gun.userData.hammer.rotation.x=-.4-pose.cock*.6;
     gun.position.set(.63-pose.lift*.31,1.07+pose.lift*.72,-.85+pose.lift*.55);gun.rotation.set(-pose.lift*.1,-pose.lift*1.4,pose.recoil*.3);
-    if(firstPerson){ownGun.scale.setScalar(.7);gripHand.visible=true;ownGun.visible=true;ownGun.userData.flash.visible=false;camera.add(ownGun);gun.position.set(.28,-.42+pose.lift*.3,-.7+pose.lift*.18+pose.recoil*.09);gun.rotation.set(.08+pose.recoil*.3,pose.lift*-.7,-.12-pose.lift*.12);hands.visible=false;}
+    if(firstPerson){
+     const restPosition=new T.Vector3(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);
+     camera.updateMatrixWorld();personal.updateMatrixWorld();
+     const aim=camera.localToWorld(new T.Vector3(.27,-.12+pose.breath,-.54+pose.recoil*.065));personal.worldToLocal(aim);
+     ownGun.position.copy(restPosition).lerp(aim,pose.lift);ownGun.scale.setScalar(.9-.2*pose.lift);
+     const restRotation=new T.Quaternion().setFromEuler(new T.Euler(0,-.55,Math.PI/2));
+     const aimRotation=camera.quaternion.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(.08+pose.recoil*.22+pose.settle*.025,-.7,-.24)));
+     const localAim=personal.getWorldQuaternion(new T.Quaternion()).invert().multiply(aimRotation);
+     ownGun.quaternion.copy(restRotation).slerp(localAim,pose.lift);gripHand.visible=pose.lift>.12;hands.visible=pose.lift<.2;
+    }
+    if(dt>.82&&!effect.cocked){effect.cocked=true;window.gameAudio?.('click');document.getElementById('sceneEvent').textContent='Steady…';}
 
-    if(dt>=1.3&&!effect.sounded){effect.sounded=true;window.gameAudio?.(effect.kind);document.getElementById('sceneEvent').textContent=effect.kind==='shot'?'BANG':'Click. Still breathing.'}
+    if(pose.trigger&&!effect.sounded){effect.sounded=true;window.gameAudio?.(effect.kind);document.getElementById('sceneEvent').textContent=effect.kind==='shot'?'BANG':'Click. Still breathing.'}
     gun.updateWorldMatrix(true,true);gun.userData.flash.getWorldPosition(flashLight.position);
-    if(effect.kind==='shot'&&pose.flash&&!mutedMotion){gun.userData.flash.visible=true;flashLight.intensity=85;camera.rotation.z=pose.recoil*.012;}
-    if(effect.kind==='shot'&&dt>=1.3&&!mutedMotion)smoke.forEach((p,i)=>{const t=dt-1.3;p.position.copy(flashLight.position);p.position.y+=t*.3+i*.012;p.position.x+=Math.sin(i*2.4)*t*.12;p.scale.setScalar(.15+t*.28+i*.02);p.material.opacity=Math.max(0,.8-t*.4)})
+    if(effect.kind==='shot'&&pose.flash&&!mutedMotion){gun.userData.flash.visible=true;flashLight.intensity=85;camera.rotation.z=pose.recoil*.012+pose.settle*.004;}
+    if(effect.kind==='shot'&&pose.trigger&&!mutedMotion)smoke.forEach((p,i)=>{const t=dt-1.65;p.position.copy(flashLight.position);p.position.y+=t*.3+i*.012;p.position.x+=Math.sin(i*2.4)*t*.12;p.scale.setScalar(.15+t*.28+i*.02);p.material.opacity=Math.max(0,.8-t*.4)})
    }
 
 

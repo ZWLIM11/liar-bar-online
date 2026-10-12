@@ -23,10 +23,14 @@ The official store describes all four. Its introductory Early Access paragraph s
 | Mode | Implemented | Deliberate adaptation / missing detail |
 | --- | --- | --- |
 | Dice | Standard bidding, challenge, two drinks, Traditional wild ones and Spot On | Solo AI and private online rooms |
-| Deck | 20-card standard deck from the attached guide, five-card hands, 1–3 card plays, challenges, persistent chamber position; Devil card | Devil's Deal is not implemented. “Chaos adaptation” uses the guide's earlier small-deck idea and is explicitly not the current official ruleset. |
+| Deck | 20-card standard deck from the attached guide, five-card hands, 1–3 card plays, challenges, persistent chamber position; Devil card | Devils Deal adaptation is now selectable: E is played alone and checks the last four played cards. Four lies send opponents to roulette. Adding one E card, immediate activation, failed/short-history self-penalty and redealing are explicitly house rules; the July announcement only specifies the four-lie success condition. “Chaos adaptation” uses the guide's earlier small-deck idea and is explicitly not the current official ruleset. |
 | Poker | Private and community cards, standard five-card hand comparison, bullet risk, Call, Fold, Coward's Fold, Switch, All-In | The store omits exact betting limits and penalty formulas. One decision per street and bullet/6 elimination odds are house rules. Switch replaces one card rather than offering the current game's staged choice count. |
 | Slots | Four reels, public first reel, claims, challenge, Death Spin, points, Execute, Double Spin | Accepted claims award their declared point amount; Death Spin uses a one-in-four Heart reel. These details are house rules because exact values are not fully specified in the cited store text. |
 
 ## Online scope
 
 Solo AI and private 2–4-player rooms are implemented. Cloudflare Durable Objects validate actions, retain room state, project private hands/rolls only to their owners, support reconnect in the same browser tab, and apply 45-second turn deadlines. Rooms refresh through polling every 1.5 seconds. The rules adaptations above apply to both solo and online play.
+
+## Latest official mode check
+
+Rechecked the official store and announcements on 12 October 2026. The store lists Deck, Dice, Poker and Slots. The July 3 announcement says Deck 2 is to return remastered; the July 2 announcement describes the 100-player mode as coming soon. Neither is represented here as a newly released playable mode. Chaos remains the clearly labeled older adaptation pending a complete verified rules specification.

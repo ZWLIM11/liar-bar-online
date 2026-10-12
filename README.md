@@ -55,7 +55,7 @@ The full game must be deployed as a **Worker with Durable Objects**, using the i
 
 ## Build identification
 
-The landing page displays **FIRST-PERSON EDITION · BUILD 5**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
+The landing page displays **FIRST-PERSON EDITION · BUILD 6**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
 
 ## Private hand interactions
 
@@ -64,3 +64,7 @@ Dice roll inside a leather cup at the start of each round. Click the cup or **Li
 ## Cartoon art update
 
 Build 5 uses smooth cartoon heads, rounded clothing, expressive eyes with idle blinks, soft hats, and rounded hands without protruding fingernails. A beveled silver revolver with wooden grip, brass trigger guard and visible cylinder rests to the right of your cup throughout play. It is lifted into first-person view for the existing shot sequence.
+
+## Build 6
+
+Shooting now smoothly interpolates from the resting table pose, with cocking sound, steady hold, recoil, settling and return. Deck has a new **Devils Deal adaptation** ruleset; E is played alone and checks the previous four played cards. See RULES.md for the official success condition and explicitly documented house-rule details.
