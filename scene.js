@@ -57,6 +57,25 @@ function init(){
  let glassRim=mesh(new T.TorusGeometry(.12,.008,8,40),brass,0,.3,0,poisonGlass);glassRim.rotation.x=Math.PI/2;
  const poisonLiquid=cyl(.107,.09,.20,mat('#668744',.22),0,.11,0,poisonGlass);
  const cardTextures=new Map();function cardFace(label){if(cardTextures.has(label))return cardTextures.get(label);let c=document.createElement('canvas');c.width=256;c.height=384;let x=c.getContext('2d');x.fillStyle='#e5d6b6';x.fillRect(0,0,256,384);x.strokeStyle='#9b794d';x.lineWidth=9;x.strokeRect(12,12,232,360);x.fillStyle=/[♥♦]/.test(label)?'#962d25':'#261c14';x.font='bold 57px Georgia';x.fillText(label,25,76);x.textAlign='center';x.font='bold 94px Georgia';x.fillText(label,128,232);let map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;const material=new T.MeshStandardMaterial({map,roughness:.78});cardTextures.set(label,material);return material}
+
+ // Public table pile: geometry contains no private card ranks.
+ const playedCards=[], revealedCards=[];let pileRound=null,pileCount=0,pileReveal=null;
+ function clearCards(list){for(const c of list){scene.remove(c);c.geometry.dispose()}list.length=0}
+ function syncPile(g){
+  if(g.mode!=='deck'){clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileReveal=null;return}
+  if(pileRound!==g.round){clearCards(playedCards);pileRound=g.round;pileCount=0}
+  let n=0;
+  for(const play of g.tablePlays||[])for(let j=0;j<play.count;j++,n++){
+   if(n<pileCount)continue;
+   const angle=play.by*Math.PI/2, c=box(.34,.014,.5,cardBack,0,1.08,0);
+   c.userData={start:performance.now()+j*90,from:new T.Vector3(Math.sin(angle)*1.9,1.3,Math.cos(angle)*1.9),to:new T.Vector3(.48+(n%3)*.075,1.07+n*.017,.35+(n%2)*.06),spin:(n%5-2)*.16};playedCards.push(c);
+  }pileCount=n;
+  if(g.lastReveal?.title==='Card challenge'&&pileReveal!==g.lastReveal.id){
+   pileReveal=g.lastReveal.id;clearCards(revealedCards);
+   g.lastReveal.rows[0].values.forEach((v,i)=>{const c=box(.4,.016,.58,[cardBack,cardBack,cardFace(String(v)),cardBack,cardBack,cardBack],(i-1)*.45,1.1,.94);c.userData.start=performance.now()+i*120;revealedCards.push(c)});
+  }
+ }
+ window.addEventListener('table-reset',()=>{clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileCount=0;pileReveal=null});
  let privateOpen=false,peekAmount=0,tableMode='dice',roundStart=0,sceneRound=null,handSize=5;
  window.addEventListener('hand-peek',e=>privateOpen=e.detail.open);
  const raycaster=new T.Raycaster(),pointer=new T.Vector2();let tapStart=null;
@@ -84,7 +103,7 @@ function init(){
  function fire(kind,who){if(effect&&(effect.kind==='shot'||effect.kind==='click')){if(kind==='shot'||kind==='click')effectQueue.push({kind,who});return}effect={kind,who,start:performance.now(),sounded:false,rate:window.animationRate||1};if(kind==='shot'||kind==='click'){window.cinematicUntil=performance.now()+3500/(window.animationRate||1);document.body.classList.add('is-cinematic');}document.getElementById('sceneEvent').textContent=kind==='shot'||kind==='click'?'One deep breath…':kind==='drink'?'Poison taken':kind==='card'?'Cards on the table':'Dice rolled';if(kind!=='shot'&&kind!=='click')window.gameAudio?.(kind)}
  document.getElementById('rehearseShot').onclick=()=>fire('shot',currentSeat);
  window.addEventListener('table-reset',()=>{prev=null;sceneRound=null;privateOpen=false;effect=null;effectQueue.length=0;document.body.classList.remove('is-cinematic')});
- window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;tableMode=g.mode;if(sceneRound!==g.round||prev?.mode!==g.mode){sceneRound=g.round;roundStart=performance.now();privateOpen=false;peekAmount=0;}
+ window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;tableMode=g.mode;syncPile(g);if(sceneRound!==g.round||prev?.mode!==g.mode){sceneRound=g.round;roundStart=performance.now();privateOpen=false;peekAmount=0;}
   playerGroups.forEach((p,i)=>{p.visible=i<g.players.length&&(view!=='seat'||i!==currentSeat);p.userData.alive=g.players[i]?.alive!==false});
   let mine=g.players[currentSeat];handSize=g.mode==='poker'?2:(mine?.hand?.length||0);cup.visible=g.mode==='dice';poisonGlass.visible=g.mode==='dice';poisonLiquid.scale.y=Math.max(.02,1-(mine?.poison||0)/2);poisonLiquid.position.y=.015+.1*poisonLiquid.scale.y;
   for(let i=0;i<5;i++){dice[i].visible=g.mode==='dice';dice[i].scale.setScalar(.65);if(mine?.dice?.[i])dice[i].material[2]=dm[mine.dice[i]-1];cards[i].visible=['deck','poker'].includes(g.mode)&&i<handSize;if(cards[i].visible){let label=g.mode==='poker'?mine.cards[i]?.label:mine.hand[i];cards[i].material=[cardBack,cardBack,cardFace(String(label||'')),cardBack,cardBack,cardBack];}}
@@ -93,6 +112,8 @@ function init(){
 
  });
  function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;time=now*.001;const a=currentSeat*Math.PI/2;
+  playedCards.forEach(c=>{const u=c.userData,t=mutedMotion?1:Math.max(0,Math.min(1,(now-u.start)/650*(window.animationRate||1)));c.position.copy(u.from).lerp(u.to,1-(1-t)**3);c.position.y+=Math.sin(t*Math.PI)*.35;c.rotation.set(0,u.spin+(1-t)*1.4,0)});
+  revealedCards.forEach(c=>{const t=mutedMotion?1:Math.max(0,Math.min(1,(now-c.userData.start)/650));c.rotation.x=Math.PI*(1-t);c.visible=now-c.userData.start<8500;});
   hands.rotation.y=a;personal.rotation.y=a;if(ownGun.parent!==personal)personal.add(ownGun);ownGun.visible=true;ownGun.position.set(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);ownGun.rotation.set(0,-.55,Math.PI/2);ownGun.scale.setScalar(.9);ownGun.userData.flash.visible=false;ownGun.userData.hammer.rotation.x=-.4;gripHand.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');const blink=!mutedMotion&&Math.sin(time*.68+i*1.7)>.997;p.userData.eyes.scale.y=blink?.12:1;const reaction=effect?.who===i?effect:null;const elapsed=reaction?(now-reaction.start)/1000*reaction.rate:0;const waitingShot=reaction&&(reaction.kind==='shot'||reaction.kind==='click')&&elapsed<1.65;const dead=p.userData.alive===false&&!waitingShot;const targetLean=dead?.28:0;p.rotation.z+=(targetLean-p.rotation.z)*.055;p.position.y+=((dead?-.4:0)-p.position.y)*.055;const head=p.userData.head;if(head){head.rotation.y=mutedMotion?0:Math.sin(time*.7+i*2)*.07;head.rotation.x=dead?.25:waitingShot?-.09+Math.sin(time*9)*.013:reaction?.kind==='click'&&elapsed>1.65?Math.sin((elapsed-1.65)*4)*.10:0;head.rotation.z=dead?.13:0}});
   if(view==='seat'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(yaw+a)*6,5+pitch*2,Math.cos(yaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
 

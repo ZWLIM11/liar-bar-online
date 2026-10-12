@@ -10,3 +10,28 @@ window.addEventListener('table-reset',()=>{lastRevealId=null;clearTimeout(reveal
 let tutorialStep=0;
 function tutorial(){const pages=[['Check your secret hand','Click the cup to reveal your practice dice. Only your own roll is visible.','<button id="lessonAction">Lift practice cup</button><div id="lessonResult">Covered</div>'],['Make a claim','A bid counts dice across every player. Your dice show two 3s. Claim at least two 3s to begin.','<button id="lessonAction">Bid two 3s</button><div id="lessonResult"></div>'],['Challenge a bluff','Your opponent claims six 3s. Choose Call bluff to reveal the table and compare the count.','<button id="lessonAction">Call bluff</button><div id="lessonResult"></div>'],['Cards and survival','In Deck, flip your hand, select 1–3 cards and claim the table rank. A lost challenge triggers roulette. In Dice, two poison drinks eliminate you.','<button id="lessonAction">Finish lesson</button><div id="lessonResult"></div>']];const p=pages[tutorialStep];$('tutorialContent').innerHTML='<span class="eyebrow">PRACTICE · '+(tutorialStep+1)+' / 4</span><h2>'+p[0]+'</h2><p>'+p[1]+'</p>'+p[2]+'<button id="lessonNext" hidden>Next →</button>';$('lessonAction').onclick=()=>{if(tutorialStep===3){$('tutorialDialog').close();return}$('lessonResult').textContent=['Your dice: 3 · 3 · 1 · 5 · 6','You bid two 3s. Next player must raise or challenge.','Revealed: only four 3s. The bidder was wrong and drinks poison.'][tutorialStep];$('lessonNext').hidden=false;$('lessonAction').disabled=true};$('lessonNext').onclick=()=>{tutorialStep++;tutorial()};}
 $('openTutorial').onclick=()=>{tutorialStep=0;tutorial();$('tutorialDialog').showModal()};$('closeTutorial').onclick=()=>$('tutorialDialog').close();
+
+// Numbered public actions prevent duplicate notices during online polling.
+const actionNotice=document.createElement('div');actionNotice.id='actionNotice';actionNotice.setAttribute('role','status');actionNotice.setAttribute('aria-live','polite');actionNotice.hidden=true;$('gameScreen').append(actionNotice);
+let noticeSerial=null,noticeTimer,noticeQueue=[];
+function nextNotice(){clearTimeout(noticeTimer);const message=noticeQueue.shift();if(!message){actionNotice.hidden=true;return}actionNotice.textContent=message;actionNotice.hidden=false;actionNotice.classList.toggle('challenge',/called Liar|challenged|challenge|all in/i.test(message));noticeTimer=setTimeout(nextNotice,2800);}
+window.addEventListener('table-reset',()=>{noticeSerial=null;noticeQueue=[];clearTimeout(noticeTimer);actionNotice.hidden=true;});
+window.addEventListener('table-state',()=>{
+ if(!game)return;
+ const serial=game.logSerial||0;
+ if(noticeSerial!==null&&serial>noticeSerial){const fresh=game.log.slice(0,Math.min(serial-noticeSerial,game.log.length)).reverse();if(fresh.some(x=>/called Liar|challenged/i.test(x))){noticeQueue=[];clearTimeout(noticeTimer);actionNotice.hidden=true;}noticeQueue.push(...fresh);noticeQueue=noticeQueue.slice(-8);if(actionNotice.hidden)nextNotice();}
+ noticeSerial=serial;
+ document.querySelectorAll('#playerRow .player').forEach((node,i)=>{
+  const p=game.players[i];if(!['deck','poker'].includes(game.mode))return;
+  const pulls=Math.min(6,p.pulls||0),stake=Math.min(6,p.stake||0),remaining=6-pulls;
+  const meter=document.createElement('div');meter.className='chamber-meter';
+  const label=document.createElement('strong');label.textContent=game.mode==='deck'?'1 BULLET · '+pulls+'/6 PULLS':stake+' / 6 BULLETS';meter.append(label);
+  const track=document.createElement('span');track.className='chamber-track';track.setAttribute('aria-hidden','true');
+  for(let k=0;k<6;k++){const dot=document.createElement('i');dot.className=game.mode==='deck'?(k<pulls?'spent':'unknown'):(k<stake?'loaded':'empty');track.append(dot)}meter.append(track);
+  const risk=document.createElement('small');risk.textContent=!p.alive?'Eliminated':game.mode==='deck'?'Next pull: '+Math.round(100/Math.max(1,remaining))+'% risk · position hidden':'At risk: '+Math.round(stake/6*100)+'%';meter.append(risk);meter.classList.toggle('danger',p.alive&&(game.mode==='deck'?remaining<=2:stake>=4));node.append(meter);
+ });
+ const p=game.players[localSeat];
+ if(game.mode==='deck')$('lifeMeter').textContent=p.alive?'YOUR GUN · 1 BULLET · '+p.pulls+'/6 PULLS · '+Math.round(100/Math.max(1,6-p.pulls))+'% NEXT RISK':'YOUR GUN · ELIMINATED';
+ if(game.mode==='poker')$('lifeMeter').textContent='YOUR GUN · '+(p.stake||0)+' / 6 BULLETS';
+ if(game.mode==='deck'){const total=(game.tablePlays||[]).reduce((n,p)=>n+p.count,0);const count=document.createElement('small');count.className='pile-count';count.textContent=total+' cards on the table · face-down until challenged';$('tableCenter').append(count);}
+});

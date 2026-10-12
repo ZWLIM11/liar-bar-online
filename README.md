@@ -76,3 +76,6 @@ Shooting now smoothly interpolates from the resting table pose, with cocking sou
 - Reader, Gambler and Trickster AI personalities adjust challenge, bluff and fold decisions without accessing opponents’ private information.
 - Four-step interactive practice tutorial on the front page.
 - Slow/Normal/Fast animation settings saved locally; online turn deadlines stay at 45 seconds. Speed changes apply to the next shooting sequence.
+
+### Build 8 — table feedback
+Played Deck cards now fly into a persistent face-down 3D pile. Challenges flip the resolved cards face-up briefly. Numbered public action notices identify callers and outcomes without repeating on room polling. Chamber tracks show spent pulls, loaded bullet count and the conditional next-pull risk; chamber positions remain private. Steam presentation reference: https://steamcommunity.com/app/3097560/announcements/ (Deck Remastered UI and animation updates).
