@@ -56,3 +56,5 @@ window.addEventListener('table-state',()=>{
 });
 
 const originalSoundToggle=$('soundButton').onclick;$('soundButton').onclick=()=>{originalSoundToggle();if(!sound)window.speechSynthesis?.cancel()};
+
+window.addEventListener('table-state',()=>{$('tableCenter').hidden=game?.mode==='deck';});
