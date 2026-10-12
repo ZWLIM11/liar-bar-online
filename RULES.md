@@ -22,11 +22,11 @@ The official store describes all four. Its introductory Early Access paragraph s
 
 | Mode | Implemented | Deliberate adaptation / missing detail |
 | --- | --- | --- |
-| Dice | Standard bidding, challenge, two drinks, Traditional wild ones and Spot On | Computer opponents, no live players |
+| Dice | Standard bidding, challenge, two drinks, Traditional wild ones and Spot On | Solo AI and private online rooms |
 | Deck | 20-card standard deck from the attached guide, five-card hands, 1–3 card plays, challenges, persistent chamber position; Devil card | Devil's Deal is not implemented. “Chaos adaptation” uses the guide's earlier small-deck idea and is explicitly not the current official ruleset. |
 | Poker | Private and community cards, standard five-card hand comparison, bullet risk, Call, Fold, Coward's Fold, Switch, All-In | The store omits exact betting limits and penalty formulas. One decision per street and bullet/6 elimination odds are house rules. Switch replaces one card rather than offering the current game's staged choice count. |
 | Slots | Four reels, public first reel, claims, challenge, Death Spin, points, Execute, Double Spin | Accepted claims award their declared point amount; Death Spin uses a one-in-four Heart reel. These details are house rules because exact values are not fully specified in the cited store text. |
 
 ## Online scope
 
-This is a local solo prototype. A real Cloudflare multiplayer release needs server-authoritative room state, private hands and rolls sent only to their owners, player reconnects, turn deadlines, and validation of every action. The source intentionally does not display working online-room controls until that backend exists.
+Solo AI and private 2–4-player rooms are implemented. Cloudflare Durable Objects validate actions, retain room state, project private hands/rolls only to their owners, support reconnect in the same browser tab, and apply 45-second turn deadlines. Rooms refresh through polling every 1.5 seconds. The rules adaptations above apply to both solo and online play.

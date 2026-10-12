@@ -4,7 +4,18 @@ An original browser prototype inspired by bluffing games at a saloon table. It u
 
 ## Play
 
-Open `index.html` in a browser. Select one of four modes, choose a character and ruleset, then **Take a seat**. This build plays locally against computer opponents. There is no real online lobby or private room yet.
+Requires Node.js 22 or later. From this repository:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Wrangler. Choose a mode, ruleset, player count and AI difficulty, then **Play solo**. For private multiplayer, enter your name, create a room, and share **Copy invite**. Friends join, everyone marks Ready, and the host starts. Rooms support 2–4 human players; solo supports 1–3 AI opponents.
+
+## Camera and effects
+
+Drag the 3D canvas to turn, scroll to zoom, or focus it and use arrow keys. R and Reset view recenter. Toggle first-person/table overview or fullscreen. Gun raising, muzzle flash, smoke, recoil, card and dice movement accompany game events. Sound and gentle effects can be toggled; reduced-motion preferences are respected. The room and human characters are procedural, stylized Three.js models, not photorealistic scanned assets.
 
 ## Modes
 
@@ -15,13 +26,29 @@ Open `index.html` in a browser. Select one of four modes, choose a character and
 | Liar's Poker | Private cards, community cards, call/fold/switch/all in, hand showdown | The [official store](https://store.steampowered.com/app/3097560/Liar_s_Bar/) describes the actions, but not all betting and penalty details. The implemented six-chamber risk is a house rule. |
 | Liar's Slots | Four reels, one public symbol, claims, challenge, Death Spin, points, Execute, Double Spin | The [official store](https://store.steampowered.com/app/3097560/Liar_s_Bar/) outlines the mode; [official announcement](https://steamcommunity.com/app/3097560/announcements/) uses the current name *Liar's Slots*. Scoring details are a house rule. |
 
-This is a prototype, not a full rules-identical port of the commercial game. The rules panel inside the game lists the sources and adaptations. The new online room flow suggested by the attached design is not implemented in this static build.
+This is a prototype, not a full rules-identical port of the commercial game. The rules panel inside the game lists the sources and adaptations.
+
+## Online architecture
+
+Cloudflare Worker + SQLite Durable Objects own room state and validate every move. Seat tokens are private and saved in sessionStorage for refresh/reconnect in the same tab. Opponents never receive your private dice/cards, remaining deck or loaded chamber. Optimistic revisions prevent duplicate moves; polling refreshes every 1.5 seconds. Turns expire after 45 seconds, inactive rooms after 24 hours. Leaving an active match forfeits your seat.
+
+This release has private invite rooms, not public matchmaking, accounts, voice chat or bot fill in online rooms. Browser tab closure retains a seat until timeout/room expiry; use Leave room to release it.
+
+## Cloudflare release (when ready)
+
+The full game must be deployed as a **Worker with Durable Objects**, using the included `wrangler.jsonc`. A static Pages upload alone cannot run online rooms. Configure the Cloudflare project to build with `npm run build` and deploy with `npx wrangler deploy` (or run `npm run deploy` after authenticating locally). The SQLite migration and assets binding are included. No Cloudflare deployment has been performed.
+
+## Verification
+
+`npm test` covers room lifecycle across all modes, private data projections, invalid actions, concurrency, timeouts, forfeits and AI legality/privacy. `npm run build` prepares public assets. Two-browser local checks cover room creation, joining, ready/start, moves, challenges and reconnects.
 
 ## Files
 
-- `index.html` — game screen and rules dialog
-- `styles.css` — responsive saloon layout and table UI
-- `game.js` — local game flow and computer players
-- `assets/saloon.png` — original image generated for this project
-
-No build step or dependencies are required.
+- `game.js` / `ai.js` — solo gameplay and difficulty-based AI
+- `online.js` — room UI and server synchronization
+- `scene.js` — 3D room, first-person camera and effects
+- `server/` — authoritative engine and Worker
+- `tests/` — multiplayer and AI checks
+- `vendor/` — Three.js (MIT, license included)
+- `assets/saloon.png` — original generated fallback artwork
+- `RULES.md` — official sources and explicit house-rule differences

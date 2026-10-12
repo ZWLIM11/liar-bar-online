@@ -16,13 +16,14 @@
     </header>
 
     <main>
-      <section class="hero" aria-label="Saloon game table">
-        <div class="hero-wash"></div>
-        <div class="hero-heading"><span class="eyebrow">THE NIGHT IS YOUNG</span><h2>Read the room.<br><em>Raise the stakes.</em></h2><p>Four games of nerve at one table. Pick your seat and see who is still standing by last call.</p></div>
-        <div class="table-overlay" id="tableOverlay" aria-live="polite"></div>
-        <div class="turn-ribbon" id="turnRibbon">Choose a game to take your seat.</div>
-      </section>
-
+      <section class="panel online-panel">          <div class="panel-title"><span>PRIVATE ONLINE ROOM</span></div>
+          <div class="online-controls"><label class="online-label">Your name<input id="onlineName" maxlength="20" placeholder="Player name" autocomplete="nickname"></label>
+          <button id="createRoom" class="subtle-button">Create room</button>
+          <label class="online-label">Room code<input id="joinCode" maxlength="10" placeholder="10-character code" autocapitalize="characters"></label>
+          <button id="joinRoom" class="subtle-button">Join room</button>
+          <button id="reconnectRoom" class="subtle-button" hidden>Reconnect saved seat</button>
+          </div><p id="onlineNotice" class="tiny-note" role="status">Online rooms require the Cloudflare server.</p>
+          <div id="roomLobby" hidden><p class="tiny-note">Room <strong id="roomCode"></strong></p><p id="roomSeats" class="tiny-note"></p><div class="room-buttons"><button id="copyRoom">Copy invite</button><button id="roomReady">Ready</button><button id="roomStart">Start match</button><button id="leaveRoom">Leave room</button></div></div></section>
       <section class="game-layout">
         <aside class="panel left-panel">
           <div class="panel-title"><span>01 / SELECT A GAME</span><span class="gold-rule"></span></div>
@@ -32,10 +33,19 @@
           <div class="character-grid" id="characterGrid"></div>
           <div class="options-row"><label for="rulesetSelect">Ruleset</label><select id="rulesetSelect"></select></div>
           <div class="options-row"><label for="playerCount">Players</label><select id="playerCount"><option value="2">2 players</option><option value="3">3 players</option><option value="4" selected>4 players</option></select></div>
-          <button id="startButton" class="primary-button">Take a seat <span>→</span></button>
-          <p class="tiny-note">Solo table with computer opponents. Private online rooms are not active in this build.</p>
+          <div class="options-row"><label for="aiDifficulty">Solo AI</label><select id="aiDifficulty"><option value="casual">Casual</option><option value="standard" selected>Standard</option><option value="expert">Expert</option></select></div><button id="startButton" class="primary-button">Play solo <span>→</span></button>
+          <p class="tiny-note">Solo table with computer opponents.</p>
+
         </aside>
 
+        <div class="table-column">
+      <section class="scene-panel" aria-label="First-person 3D saloon">
+        <div id="sceneHost"></div>
+        <div class="scene-top"><span class="eyebrow">YOUR SEAT AT THE TABLE</span><span id="sceneEvent" role="status"></span></div>
+        <div class="table-overlay" id="tableOverlay" aria-live="polite"></div>
+        <div class="scene-bottom"><div id="turnRibbon">Choose a mode, then play solo or invite friends.</div><div class="view-controls"><button id="cameraView">Table overview</button><button id="resetView">Reset view</button><button id="motionButton">Effects: cinematic</button><button id="fullView">Fullscreen</button></div><span id="viewHint">Loading 3D saloon…</span></div>
+      </section>
+        <div class="table-column">
         <section class="panel play-panel">
           <div class="panel-title"><span>02 / THE TABLE</span><span id="roundLabel">WAITING FOR PLAYERS</span></div>
           <div class="player-row" id="playerRow"></div>
@@ -45,6 +55,8 @@
           <div class="action-area" id="actionArea"></div>
         </section>
 
+        </div>
+        </div>
         <aside class="panel right-panel">
           <div class="panel-title"><span>03 / HOW TO PLAY</span></div>
           <div id="rulesSummary" class="rules-summary"></div>
@@ -59,5 +71,8 @@
 
   <dialog id="rulesDialog"><div class="dialog-head"><div><span class="eyebrow">THE HOUSE BOOK</span><h2>Rules & provenance</h2></div><button id="closeRules" aria-label="Close rules">✕</button></div><div id="fullRules"></div></dialog>
   <script src="game.js" defer></script>
+  <script src="online.js" defer></script>
+  <script src="ai.js" defer></script>
+  <script type="module" src="scene.js"></script>
 </body>
 </html>
