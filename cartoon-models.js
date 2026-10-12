@@ -17,7 +17,7 @@ export function cartoonPerson(index){const g=new T.Group(),palette=[['#395766','
  oval(g,hat,0,2.155,-.025,.35,.035,.30);rounded(g,hat,0,2.25,-.015,.42,.22,.36,.07);rounded(g,material('#91613d'),0,2.169,-.016,.427,.065,.366,.018);
  const scarf=material(index%2?'#d6ad66':'#b65443');oval(g,scarf,0,1.55,-.075,.128,.044,.115);oval(g,scarf,.04,1.46,-.23,.053,.11,.023).rotation.z=-.3;
  for(let y=1.02;y<1.42;y+=.11)oval(g,gold,0,y,-.224,.015,.015,.012);
- const head=new T.Group();head.position.set(0,1.61,0);g.add(head);g.updateMatrixWorld(true);for(const child of [...g.children])if(child!==head&&child.position.y>1.62)head.attach(child);g.userData.head=head;g.userData.eyes=eyes;g.userData.alive=true;return g;
+ const head=new T.Group();head.position.set(0,1.61,0);g.add(head);g.updateMatrixWorld(true);for(const child of [...g.children])if(child!==head&&child.position.y>1.62)head.attach(child);const body=new T.Group();body.position.set(0,.75,0);g.add(body);g.updateMatrixWorld(true);for(const child of [...g.children].slice(2))if(child!==body)body.attach(child);g.userData.body=body;g.userData.head=head;g.userData.eyes=eyes;g.userData.alive=true;return g;
 }
 export function cartoonRevolver(){const g=new T.Group(),steel=material('#324550',.3,.65),silver=material('#b3c1c7',.23,.6),dark=material('#27313a',.5,.25),grip=material('#512f28'),gold=material('#d6ab60',.3,.45);
  const barrel=part(g,new T.CylinderGeometry(.044,.046,.46,40),steel,0,.04,-.255);barrel.rotation.x=Math.PI/2;const rim=part(g,new T.TorusGeometry(.034,.009,10,32),silver,0,.04,-.49);part(g,new T.CircleGeometry(.026,32),dark,0,.04,-.491).rotation.y=Math.PI;rim.rotation.y=Math.PI;

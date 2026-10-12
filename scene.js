@@ -1,11 +1,11 @@
 import * as T from './vendor/three.module.min.js';
-import {cartoonPerson,cartoonHand,cartoonRevolver,templeAim} from './cartoon-models.js?v=10';
-import {shotPose,sceneEvents} from './scene-events.js';
+import {cartoonPerson,cartoonHand,cartoonRevolver,templeAim} from './cartoon-models.js?v=11';
+import {shotPose,sceneEvents,deathPose} from './scene-events.js?v=11';
 const host=document.getElementById('sceneHost');
 try { init(); } catch(error) { host.classList.add('scene-fallback');document.getElementById('viewHint').textContent='3D unavailable: enable hardware acceleration and reload.';console.warn('3D renderer unavailable:',error.message); }
 function init(){
- const scene=new T.Scene();scene.background=new T.Color('#180e0b');scene.fog=new T.FogExp2('#25150f',.032);
- const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;host.appendChild(renderer.domElement);
+ const scene=new T.Scene();scene.background=new T.Color('#0b0c13');scene.fog=new T.FogExp2('#11121b',.041);
+ const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.88;host.appendChild(renderer.domElement);
  const camera=new T.PerspectiveCamera(65,1,.05,70);scene.add(camera);
  const mat=(color,roughness=.7,metalness=0)=>new T.MeshStandardMaterial({color,roughness,metalness});
  const wood=mat('#4c2815'),trim=mat('#9c6231',.45),felt=mat('#183f34'),brass=mat('#bb9148',.3,.7),dark=mat('#171316',.38,.45),skin=mat('#b07955'),ivory=mat('#eddfbd');
@@ -23,7 +23,7 @@ function init(){
  cyl(2.95,2.8,.23,wood,0,.9,0);cyl(2.7,2.7,.025,felt,0,1.03,0);cyl(.48,.75,.85,wood,0,.4,0);
  const rim=mesh(new T.TorusGeometry(2.77,.045,12,90),brass,0,1.04,0);rim.rotation.x=Math.PI/2;
  const lamp=cyl(.17,.25,.4,brass,0,1.25,0);sphere(.13,new T.MeshStandardMaterial({color:'#ffb345',emissive:'#ff8219',emissiveIntensity:3}),0,1.58,0);
- const light=new T.PointLight('#ffd4a0',30,10,2);light.position.set(0,2.5,.1);light.castShadow=true;light.shadow.mapSize.set(1024,1024);scene.add(light);scene.add(new T.HemisphereLight('#e4e7f0','#473329',2.1));
+ const light=new T.PointLight('#ffd4a0',30,10,2);light.position.set(0,2.5,.1);light.castShadow=true;light.shadow.mapSize.set(1024,1024);scene.add(light);scene.add(new T.HemisphereLight('#9bacc8','#28151d',1.5));
  for(const x of [-5,5]){let l=new T.PointLight('#ffab69',42,13);l.position.set(x,3,-6);scene.add(l);cyl(.6,.1,.25,brass,x,3.5,-6)}
 
  // Ceiling beams, windows and secondary tables give free-look a complete room.
@@ -65,17 +65,21 @@ function init(){
  const cardTextures=new Map();function cardFace(label){if(cardTextures.has(label))return cardTextures.get(label);let c=document.createElement('canvas');c.width=256;c.height=384;let x=c.getContext('2d');x.fillStyle='#e5d6b6';x.fillRect(0,0,256,384);x.strokeStyle='#9b794d';x.lineWidth=9;x.strokeRect(12,12,232,360);x.fillStyle=/[♥♦]/.test(label)?'#962d25':'#261c14';x.font='bold 57px Georgia';x.fillText(label,25,76);x.textAlign='center';x.font='bold 94px Georgia';x.fillText(label,128,232);let map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;const material=new T.MeshStandardMaterial({map,roughness:.78});cardTextures.set(label,material);return material}
 
  // Public table pile: geometry contains no private card ranks.
+ const pileSign=document.createElement('div');pileSign.id='pileSign';pileSign.hidden=true;host.append(pileSign);let pilePulse=0;
+ const pileHalo=mesh(new T.TorusGeometry(.42,.014,8,48),new T.MeshBasicMaterial({color:'#dcb276',transparent:true,opacity:.6}),.57,1.056,.40);pileHalo.rotation.x=Math.PI/2;pileHalo.visible=false;
  const playedCards=[], revealedCards=[];let pileRound=null,pileCount=0,pileReveal=null;
  function clearCards(list){for(const c of list){scene.remove(c);c.geometry.dispose()}list.length=0}
  function syncPile(g){
-  if(g.mode!=='deck'){clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileReveal=null;return}
+  pileSign.hidden=g.mode!=='deck';pileHalo.visible=g.mode==='deck';if(g.mode!=='deck'){clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileReveal=null;return}
   if(pileRound!==g.round){clearCards(playedCards);pileRound=g.round;pileCount=0}
   let n=0;
   for(const play of g.tablePlays||[])for(let j=0;j<play.count;j++,n++){
    if(n<pileCount)continue;
    const angle=play.by*Math.PI/2, c=box(.34,.014,.5,cardBack,0,1.08,0);
    c.userData={start:performance.now()+j*90,from:new T.Vector3(Math.sin(angle)*1.9,1.3,Math.cos(angle)*1.9),to:new T.Vector3(.48+(n%3)*.075,1.07+n*.017,.35+(n%2)*.06),spin:(n%5-2)*.16};playedCards.push(c);
-  }pileCount=n;
+  }if(n!==pileCount)pilePulse=performance.now();pileCount=n;
+  pileSign.textContent=(g.pending?g.players[g.pending.by].name+' played '+g.pending.cards.length+' · ':'')+n+' CARDS ↓';
+  if(!n)pileSign.textContent=g.rank+'’S TABLE · PLAY HERE ↓';
   if(g.lastReveal?.title==='Card challenge'&&pileReveal!==g.lastReveal.id){
    pileReveal=g.lastReveal.id;clearCards(revealedCards);
    g.lastReveal.rows[0].values.forEach((v,i)=>{const c=box(.4,.016,.58,[cardBack,cardBack,cardFace(String(v)),cardBack,cardBack,cardBack],(i-1)*.45,1.1,.94);c.userData.start=performance.now()+i*120;revealedCards.push(c)});
@@ -105,23 +109,25 @@ function init(){
  document.getElementById('motionButton').onclick=()=>{mutedMotion=!mutedMotion;document.getElementById('motionButton').textContent=mutedMotion?'Effects: gentle':'Effects: cinematic'};
  document.getElementById('motionButton').textContent=mutedMotion?'Effects: gentle':'Effects: cinematic';
  document.getElementById('fullView').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.getElementById('gameScreen').requestFullscreen?.()};
+ const deathTimes=new Map(),bloodDrops=[];const bloodMaterial=mat('#651728',.38);const deathShade=document.createElement('div');deathShade.id='deathShade';deathShade.innerHTML='<div class="death-title">LAST BREATH<small>You are eliminated</small><button id="spectateDeath">Watch the table</button></div>';deathShade.hidden=true;host.append(deathShade);document.getElementById('spectateDeath').onclick=()=>{view='overview';document.getElementById('cameraView').textContent='First-person seat'};
+ function bleed(who){if(who===currentSeat)deathShade.classList.add('bloody');const a=who*Math.PI/2;for(let j=0;j<14;j++){const drop=sphere(.018+Math.random()*.018,bloodMaterial,Math.sin(a)*3.05,1.9,Math.cos(a)*3.05);drop.userData={start:performance.now(),origin:drop.position.clone(),velocity:new T.Vector3((Math.random()-.5)*1.5,Math.random()*.6,(Math.random()-.5)*1.5)};bloodDrops.push(drop)}}
  const effectQueue=[];
  function fire(kind,who){if(effect&&(effect.kind==='shot'||effect.kind==='click')){if(kind==='shot'||kind==='click')effectQueue.push({kind,who});return}effect={kind,who,start:performance.now(),sounded:false,rate:window.animationRate||1};if(kind==='shot'||kind==='click'){window.cinematicUntil=performance.now()+3500/(window.animationRate||1);document.body.classList.add('is-cinematic');}document.getElementById('sceneEvent').textContent=kind==='shot'||kind==='click'?'One deep breath…':kind==='drink'?'Poison taken':kind==='card'?'Cards on the table':'Dice rolled';if(kind!=='shot'&&kind!=='click')window.gameAudio?.(kind)}
  document.getElementById('rehearseShot').onclick=()=>fire('shot',currentSeat);
- window.addEventListener('table-reset',()=>{prev=null;sceneRound=null;privateOpen=false;effect=null;effectQueue.length=0;document.body.classList.remove('is-cinematic')});
+ window.addEventListener('table-reset',()=>{prev=null;sceneRound=null;privateOpen=false;effect=null;effectQueue.length=0;deathTimes.clear();deathShade.hidden=true;deathShade.classList.remove('bloody');for(const d of bloodDrops){scene.remove(d);d.geometry.dispose()}bloodDrops.length=0;pileSign.hidden=true;pileHalo.visible=false;document.body.classList.remove('is-cinematic')});
  window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;tableMode=g.mode;syncPile(g);if(sceneRound!==g.round||prev?.mode!==g.mode){sceneRound=g.round;roundStart=performance.now();privateOpen=false;peekAmount=0;}
   playerGroups.forEach((p,i)=>{p.visible=i<g.players.length&&(view!=='seat'||i!==currentSeat);p.userData.alive=g.players[i]?.alive!==false});
   selectedCards=g.selected||[];let mine=g.players[currentSeat];handSize=g.mode==='poker'?2:(mine?.hand?.length||0);cup.visible=g.mode==='dice';seatCups.forEach((c,i)=>c.visible=g.mode==='dice'&&i!==currentSeat&&i<g.players.length&&g.players[i].alive);poisonGlass.visible=g.mode==='dice';poisonLiquid.scale.y=Math.max(.02,1-(mine?.poison||0)/2);poisonLiquid.position.y=.015+.1*poisonLiquid.scale.y;
   for(let i=0;i<5;i++){dice[i].visible=g.mode==='dice';dice[i].scale.setScalar(.45);if(mine?.dice?.[i])dice[i].material[2]=dm[mine.dice[i]-1];cards[i].visible=['deck','poker'].includes(g.mode)&&i<handSize;if(cards[i].visible){let label=g.mode==='poker'?mine.cards[i]?.label:mine.hand[i];cards[i].material=[cardBack,cardBack,cardFace(String(label||'')),cardBack,cardBack,cardBack];}}
 
-  if(prev){for(const event of sceneEvents(g,prev))fire(event.kind,event.who)}else fire(g.mode==='dice'?'roll':'card',currentSeat);prev={round:g.round,mode:g.mode,log:[...g.log]};
+  if(prev){const events=sceneEvents(g,prev);let delay=effect&&(effect.kind==='shot'||effect.kind==='click')?Math.max(0,3500-(performance.now()-effect.start)*effect.rate)/effect.rate:0;for(const event of events){if(g.players[event.who]?.alive===false&&!deathTimes.has(event.who))deathTimes.set(event.who,performance.now()+delay+(event.kind==='shot'?1650:1100)/(window.animationRate||1));fire(event.kind,event.who);if(event.kind==='shot'||event.kind==='click')delay+=3500/(window.animationRate||1)}}else fire(g.mode==='dice'?'roll':'card',currentSeat);g.players.forEach((p,i)=>{if(!p.alive&&!deathTimes.has(i))deathTimes.set(i,performance.now()-(prev?0:2000));});prev={round:g.round,mode:g.mode,log:[...g.log]};
 
  });
  function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;const delta=Math.min(.05,(now-(lastFrame||now-16.67))/1000);lastFrame=now;const blend=1-Math.exp(-12*delta);lookYaw+=(yaw-lookYaw)*blend;lookPitch+=(pitch-lookPitch)*blend;lookZoom+=(zoom-lookZoom)*blend;time=now*.001;const a=currentSeat*Math.PI/2;
   patrons.forEach((p,i)=>{if(mutedMotion)return;p.userData.head.rotation.y=Math.sin(time*.35+i*2)*.16;p.userData.head.rotation.x=Math.sin(time*.5+i)*.035;});
   playedCards.forEach(c=>{const u=c.userData,t=mutedMotion?1:Math.max(0,Math.min(1,(now-u.start)/650*(window.animationRate||1)));c.position.copy(u.from).lerp(u.to,1-(1-t)**3);c.position.y+=Math.sin(t*Math.PI)*.35;c.rotation.set(0,u.spin+(1-t)*1.4,0)});
   revealedCards.forEach(c=>{const t=mutedMotion?1:Math.max(0,Math.min(1,(now-c.userData.start)/650));c.rotation.x=Math.PI*(1-t);c.visible=now-c.userData.start<8500;});
-  hands.rotation.y=a;personal.rotation.y=a;if(ownGun.parent!==personal)personal.add(ownGun);ownGun.visible=true;ownGun.position.set(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);ownGun.rotation.set(0,-.55,Math.PI/2);ownGun.scale.setScalar(.9);ownGun.userData.flash.visible=false;ownGun.userData.hammer.rotation.x=-.4;gripHand.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');const blink=!mutedMotion&&Math.sin(time*.68+i*1.7)>.997;p.userData.eyes.scale.y=blink?.12:1;const reaction=effect?.who===i?effect:null;const elapsed=reaction?(now-reaction.start)/1000*reaction.rate:0;const waitingShot=reaction&&(reaction.kind==='shot'||reaction.kind==='click')&&elapsed<1.65;const dead=p.userData.alive===false&&!waitingShot;const targetLean=dead?.28:0;p.rotation.z+=(targetLean-p.rotation.z)*.055;p.position.y+=((dead?-.4:0)-p.position.y)*.055;const head=p.userData.head;if(head){head.rotation.y=mutedMotion?0:Math.sin(time*.7+i*2)*.07;head.rotation.x=dead?.25:waitingShot?-.09+Math.sin(time*9)*.013:reaction?.kind==='click'&&elapsed>1.65?Math.sin((elapsed-1.65)*4)*.10:0;head.rotation.z=dead?.13:0}});
+  hands.rotation.y=a;personal.rotation.y=a;if(ownGun.parent!==personal)personal.add(ownGun);ownGun.visible=true;ownGun.position.set(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);ownGun.rotation.set(0,-.55,Math.PI/2);ownGun.scale.setScalar(.9);ownGun.userData.flash.visible=false;ownGun.userData.hammer.rotation.x=-.4;gripHand.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');const blink=!mutedMotion&&Math.sin(time*.68+i*1.7)>.997;p.userData.eyes.scale.y=blink?.12:1;const reaction=effect?.who===i?effect:null;const elapsed=reaction?(now-reaction.start)/1000*reaction.rate:0;const waitingShot=reaction&&(reaction.kind==='shot'||reaction.kind==='click')&&elapsed<1.65;const deathStart=deathTimes.get(i),dead=deathStart!==undefined&&now>=deathStart;const collapse=deathPose(dead?(now-deathStart)/1000*(window.animationRate||1):0);const body=p.userData.body;body.rotation.z=collapse.roll;body.position.set(collapse.fall*.4,.75-collapse.drop,collapse.fall*.12);p.userData.eyes.scale.y=dead?.12:blink?.12:1;const head=p.userData.head;if(head){head.rotation.y=mutedMotion?0:Math.sin(time*.7+i*2)*.07;head.rotation.x=dead?.25:waitingShot?-.09+Math.sin(time*9)*.013:reaction?.kind==='click'&&elapsed>1.65?Math.sin((elapsed-1.65)*4)*.10:0;head.rotation.z=dead?.13:0}});
   if(view==='seat'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(lookPitch,lookYaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(lookYaw+a)*6,5+lookPitch*2,Math.cos(lookYaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
 
   const dealTime=(now-roundStart)/1000*(window.animationRate||1);peekAmount+=(Number(privateOpen)-peekAmount)*(mutedMotion?1:blend);
@@ -148,7 +154,7 @@ function init(){
     }
     if(dt>.82&&!effect.cocked){effect.cocked=true;window.gameAudio?.('click');document.getElementById('sceneEvent').textContent='Steady…';}
 
-    if(pose.trigger&&!effect.sounded){effect.sounded=true;window.gameAudio?.(effect.kind);document.getElementById('sceneEvent').textContent=effect.kind==='shot'?'BANG':'Click. Still breathing.'}
+    if(pose.trigger&&!effect.sounded){effect.sounded=true;if(effect.kind==='shot'&&playerGroups[effect.who].userData.alive===false){deathTimes.set(effect.who,now);bleed(effect.who);}window.gameAudio?.(effect.kind);document.getElementById('sceneEvent').textContent=effect.kind==='shot'?'BANG':'Click. Still breathing.'}
     gun.updateWorldMatrix(true,true);gun.userData.flash.getWorldPosition(flashLight.position);
     if(effect.kind==='shot'&&pose.flash&&!mutedMotion){gun.userData.flash.visible=true;flashLight.intensity=85;camera.rotation.z=pose.recoil*.012+pose.settle*.004;}
     if(effect.kind==='shot'&&pose.trigger&&!mutedMotion)smoke.forEach((p,i)=>{const t=dt-1.65;p.position.copy(flashLight.position);p.position.y+=t*.3+i*.012;p.position.x+=Math.sin(i*2.4)*t*.12;p.scale.setScalar(.15+t*.28+i*.02);p.material.opacity=Math.max(0,.8-t*.4)})
@@ -157,6 +163,12 @@ function init(){
 
   }}
 
+  guns.forEach((gun,i)=>{const start=deathTimes.get(i);if(start===undefined||now<start)return;const fall=deathPose((now-start)/1000*(window.animationRate||1)).fall;gun.position.set(.63+fall*.4,1.14-fall*.98,-.85+fall*1.05);gun.rotation.set(fall*.5,-.35,Math.PI/2+fall*.6);});
+  bloodDrops.forEach(d=>{const t=(now-d.userData.start)/1000;d.position.copy(d.userData.origin).addScaledVector(d.userData.velocity,Math.min(t,.7));d.position.y=Math.max(.04,d.userData.origin.y+d.userData.velocity.y*t-3*t*t);if(d.position.y<=.04){d.scale.set(1.8,.12,1.8)}d.visible=t<25;});
+  const ownDeath=deathTimes.get(currentSeat),fallen=ownDeath!==undefined&&now>=ownDeath;
+  deathShade.hidden=!fallen;deathShade.classList.toggle('spectating',view==='overview');
+  if(fallen&&view==='seat'){const pose=deathPose((now-ownDeath)/1000*(window.animationRate||1));if(!mutedMotion){camera.position.y-=pose.fall*1.12;camera.rotation.z=pose.roll*.6;camera.rotation.x+=pose.fall*.22;}hands.position.y=-pose.fall*.8;hands.rotation.z=pose.roll;ownGun.visible=false;gripHand.visible=false;}else{hands.position.y=0;hands.rotation.z=0;}
+  if(tableMode==='deck'&&!pileSign.hidden){camera.updateMatrixWorld();const point=new T.Vector3(.57,1.62,.40).project(camera);const bounds=host.getBoundingClientRect();pileSign.style.left=((point.x+1)*bounds.width/2)+'px';pileSign.style.top=((-point.y+1)*bounds.height/2)+'px';pileSign.style.visibility=point.z<1&&point.z>-1?'visible':'hidden';const pulse=mutedMotion?0:Math.max(0,1-(now-pilePulse)/950);pileHalo.scale.setScalar(1+pulse*.35);pileHalo.material.opacity=.45+pulse*.4;}
   renderer.render(scene,camera);
  }resize();requestAnimationFrame(frame);document.getElementById('viewHint').textContent='Drag to look · scroll to zoom · arrow keys · R to reset';
 }

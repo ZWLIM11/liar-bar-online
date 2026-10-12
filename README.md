@@ -85,3 +85,6 @@ Compact bottom actions with the current claim over the felt; covered hands no lo
 
 ### Build 10 — smoother saloon presentation
 Spaced 3D and HUD cards with eased selection and camera movement, original patterned card backs, blued steel and gold-inlay revolvers. Gun poses aim toward the temple rather than fixed angles. Liar challenges have a synthesized sting and spoken call where browser speech is available, respecting mute. Added three gently animated background patrons, wall art, lamps, barrels and a clock.
+
+### Build 11 — death sequences and dark saloon
+Impact-timed body collapses, blood particles for fatal gunshots, first-person fall and a spectate button. Poison eliminations collapse without gunshot blood. Chairs remain upright. Darker cool ambient lighting keeps the warm table readable. An anchored card-pile sign identifies the latest play and total count, with a landing pulse. Reduced-motion mode skips the first-person camera fall.

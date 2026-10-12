@@ -1,3 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {shotPose,sceneEvents} from '../scene-events.js';
 test('revolver raises before firing, recoil decays and returns to rest',()=>{assert.equal(shotPose(0).lift,0);assert.equal(shotPose(1).lift,1);assert.equal(shotPose(1.64).flash,false);assert.equal(shotPose(1.68).flash,true);assert.ok(shotPose(1.68).recoil>shotPose(2).recoil);assert.equal(shotPose(3.3).lift,0);assert.equal(shotPose(3.3).flash,false)});
 test('multiple chamber outcomes retain the correct seat and order',()=>{let g={mode:'deck',round:2,players:[{name:'Alex'},{name:'Bob'}],log:["Bob's chamber fired. Bob is eliminated.",'Alex pulled the trigger and survived (1/6).']};assert.deepEqual(sceneEvents(g,{mode:'deck',round:1,log:[]}),[{kind:'click',who:0},{kind:'shot',who:1}]);assert.deepEqual(sceneEvents(g,{mode:'deck',round:2,log:g.log}),[])});
+
+import {deathPose} from '../scene-events.js';
+test('death collapse waits for impact and settles into a persistent lying pose',()=>{assert.equal(deathPose(-1).fall,0);assert.equal(deathPose(0).drop,0);assert.ok(deathPose(.8).roll>0);assert.ok(deathPose(.8).roll<deathPose(1.6).roll);assert.equal(deathPose(1.6).finished,true);assert.deepEqual(deathPose(2),deathPose(20));});
