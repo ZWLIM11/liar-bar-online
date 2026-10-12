@@ -55,7 +55,7 @@ The full game must be deployed as a **Worker with Durable Objects**, using the i
 
 ## Build identification
 
-The landing page displays **FIRST-PERSON EDITION · BUILD 6**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
+The landing page displays **FIRST-PERSON EDITION · BUILD 7**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.
 
 ## Private hand interactions
 
@@ -68,3 +68,11 @@ Build 5 uses smooth cartoon heads, rounded clothing, expressive eyes with idle b
 ## Build 6
 
 Shooting now smoothly interpolates from the resting table pose, with cocking sound, steady hold, recoil, settling and return. Deck has a new **Devils Deal adaptation** ruleset; E is played alone and checks the previous four played cards. See RULES.md for the official success condition and explicitly documented house-rule details.
+
+## Build 7
+
+- Character glances, tense pre-shot poses, relief nods and smooth elimination slumps.
+- Last challenge panel: resolved dice/cards/reels and explicit outcome, while fresh private hands remain hidden.
+- Reader, Gambler and Trickster AI personalities adjust challenge, bluff and fold decisions without accessing opponents’ private information.
+- Four-step interactive practice tutorial on the front page.
+- Slow/Normal/Fast animation settings saved locally; online turn deadlines stay at 45 seconds. Speed changes apply to the next shooting sequence.

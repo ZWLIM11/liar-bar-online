@@ -21,7 +21,7 @@ function applyRoom(data){
  $('roomStart').disabled=data.seats.length<2||!data.seats.every(p=>p.ready);
  $('startButton').disabled=true;$('createRoom').disabled=$('joinRoom').disabled=true;
  if(data.game){const selected=oldRound===data.game.round?(game?.selected||[]):[];game=data.game;game.selected=selected;render()}
- else{game=null;document.body.classList.remove('in-game');$('playerRow').textContent='';$('privateArea').textContent='';$('actionArea').textContent='';$('message').textContent='Everyone selects Ready, then the host starts.';$('turnRibbon').textContent='Private room '+data.code;$('tableCenter').textContent='Waiting for players';}
+ else{game=null;window.dispatchEvent(new CustomEvent('table-reset'));document.body.classList.remove('in-game');$('playerRow').textContent='';$('privateArea').textContent='';$('actionArea').textContent='';$('message').textContent='Everyone selects Ready, then the host starts.';$('turnRibbon').textContent='Private room '+data.code;$('tableCenter').textContent='Waiting for players';}
  onlineNotice(data.game?`Connected · ${modes[data.mode].name} · turn limit 45 seconds`:`Room ${data.seats.length}/${data.capacity} · ${modes[data.mode].name} · ${data.ruleset}`);
 }
 function pollRoom(){clearTimeout(roomPoll);roomPoll=setTimeout(async()=>{
