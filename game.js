@@ -1,0 +1,139 @@
+/* The Liar's Table: local solo prototype. Published mechanics are attributed in the Rules panel. */
+const $ = id => document.getElementById(id);
+const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const avatars = ['🤠','🕵️','👩🏽','🧔🏽','👩🏻','👨🏿'];
+const names = ['You','Mina','Silas','Rosa'];
+const modes = {
+  dice:{icon:'⚄',name:"Liar's Dice",subtitle:'Bid, doubt, reveal',rulesets:['Standard','Traditional'],tag:'Official mode',steps:['Each player secretly rolls five dice.','Bid a quantity and face across all dice. The next bid must raise the quantity or, at equal quantity, the face.','Challenge the last bid. If the count is lower, the bidder drinks poison; otherwise the challenger drinks. Two drinks eliminate a player.','Traditional: ones are wild for faces 2–6. Spot On correctly names an exact count and makes every other player drink.']},
+  deck:{icon:'🂠',name:"Liar's Deck",subtitle:'Play, claim, challenge',rulesets:['Standard','Devil','Chaos adaptation'],tag:'Official mode + variants',steps:['A table rank is chosen. Each player receives five cards from six Aces, six Kings, six Queens and two Jokers.','Play one to three face-down cards, claiming each matches the table rank. Jokers count as wild. The next player may play or call Liar.','A false claim makes its player pull the trigger. A true claim makes the challenger pull. One chamber in six is loaded for each player.','Devil adds a Devil card played alone. This prototype’s Chaos adaptation uses three-card hands and special Master and Chaos cards; the live game’s Chaos rules changed in July 2026.']},
+  poker:{icon:'♠',name:"Liar's Poker",subtitle:'Bet bullets, show cards',rulesets:['Table adaptation'],tag:'Published outline + house rules',steps:['Receive two private cards and reveal up to five community cards.','Call, fold, switch a card once per match, or go all in. Bullets are your risk rather than chips.','The strongest five-card poker hand wins the showdown; losing players face a chance of elimination tied to the bullets they committed.','The publisher describes actions but does not publish every betting limit and penalty detail on its store page. This prototype uses one betting decision per street and a six-chamber risk model.']},
+  roulette:{icon:'♥',name:"Liar's Slots",subtitle:'Spin, claim, challenge',rulesets:['Table adaptation'],tag:'Published outline + house rules',steps:['Spin four reels. One reel stays visible to the table.','Claim one, two or three Hearts, or Jackpot for four matching symbols. Another player may call Liar.','A false claim sends the claimant to Death Spin; a true claim sends the challenger. A Death Spin with no Heart eliminates the player.','A sole points leader at five points may Execute the lowest-scoring player. Double Spin may be used once per match. The exact scoring gaps are filled with labeled house rules.']}
+};
+let selectedMode='dice', selectedAvatar=0, game=null, sound=true, botTimer=null;
+const rand=n=>Math.floor(Math.random()*n), shuffle=a=>a.sort(()=>Math.random()-.5), living=()=>game.players.filter(p=>p.alive), next=i=>{let j=i;do{j=(j+1)%game.players.length}while(!game.players[j].alive);return j};
+const log=s=>{game.log.unshift(s);game.log=game.log.slice(0,12)};
+const say=s=>{game.message=s;log(s);render()};
+function tone(freq=360){if(!sound)return;try{const ctx=new (window.AudioContext||window.webkitAudioContext)(),o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=freq;g.gain.value=.026;o.connect(g);g.connect(ctx.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.13);o.stop(ctx.currentTime+.14)}catch{}}
+function setup(){
+  $('modeGrid').innerHTML=Object.entries(modes).map(([key,m])=>`<button class="mode-card ${selectedMode===key?'active':''}" data-mode="${key}"><span class="mode-icon">${m.icon}</span><span><strong>${m.name}</strong><small>${m.subtitle}</small></span></button>`).join('');
+  $('characterGrid').innerHTML=avatars.map((a,i)=>`<button class="character ${selectedAvatar===i?'active':''}" data-avatar="${i}" aria-label="Choose character ${i+1}"><span class="avatar">${a}</span><small>${['Ranger','Agent','Rogue','Veteran','Lady','Marshal'][i]}</small></button>`).join('');
+  $('rulesetSelect').innerHTML=modes[selectedMode].rulesets.map(v=>`<option>${v}</option>`).join('');
+  $('rulesSummary').innerHTML=`<span class="rule-tag">${modes[selectedMode].tag}</span><h3>${modes[selectedMode].name}</h3><ol>${modes[selectedMode].steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+  $('modeGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedMode=b.dataset.mode;setup()});
+  $('characterGrid').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedAvatar=+b.dataset.avatar;setup()});
+}
+function start(){
+  clearTimeout(botTimer);const count=+$('playerCount').value;
+  game={mode:selectedMode,ruleset:$('rulesetSelect').value,players:names.slice(0,count).map((name,i)=>({name,avatar:i?avatars[(i+selectedAvatar)%avatars.length]:avatars[selectedAvatar],alive:true,poison:0,pulls:0,loaded:1+rand(6),points:0,switched:false,double:false})),turn:0,round:1,log:[],message:'',pending:null,phase:'playing'};
+  if(selectedMode==='dice')newDiceRound();
+  if(selectedMode==='deck')newDeckRound();
+  if(selectedMode==='poker')newPokerRound();
+  if(selectedMode==='roulette')newRouletteRound();
+  log(`${modes[selectedMode].name} begins. ${count-1} computer opponents take their seats.`);tone(450);render();scheduleBot();
+}
+function endCheck(){if(living().length>1)return false;game.phase='ended';game.message=`${living()[0]?.name||'Nobody'} wins the table.`;clearTimeout(botTimer);tone(550);return true}
+function status(p){if(!p.alive)return 'ELIMINATED';switch(game.mode){case'dice':return `${2-p.poison} drinks left`;case'deck':return `${p.hand?.length||0} cards · ${6-p.pulls} chambers`;case'poker':return `${p.stake||0} bullets staked`;case'roulette':return `${p.points} points`;}}
+function render(){
+  if(!game)return;
+  $('gameStatus').textContent=game.phase==='ended'?'LAST CALL':`${modes[game.mode].name.toUpperCase()} · ${game.ruleset.toUpperCase()}`;
+  $('roundLabel').textContent=`ROUND ${game.round}`;
+  $('turnRibbon').textContent=game.phase==='ended'?game.message:`${game.players[game.turn].name}'s turn · ${modes[game.mode].name}`;
+  $('playerRow').innerHTML=game.players.map((p,i)=>`<div class="player ${i===game.turn&&game.phase==='playing'?'turn':''} ${!p.alive?'dead':''}"><div class="player-head"><span class="avatar">${p.avatar}</span><span class="player-name">${p.name}</span></div><div class="player-stat">${status(p)}</div></div>`).join('');
+  $('message').textContent=game.message;
+  $('log').innerHTML=game.log.map(x=>`<li>${escapeHTML(x)}</li>`).join('');
+  const data=tableData();$('tableCenter').innerHTML=data.center;$('tableOverlay').innerHTML=data.overlay;
+  $('privateArea').innerHTML=data.private;
+  $('actionArea').innerHTML=data.actions;
+  wireActions();
+}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function tableData(){const g=game,me=g.players[0],yourTurn=g.turn===0&&g.phase==='playing';
+  let center='<span class="table-emblem">◆</span><span>THE LIAR\'S TABLE</span>',overlay='',privateArea='',actions='';
+  if(g.mode==='dice'){
+    center=`<span class="table-emblem">⚄</span><span class="big">${g.bid?`${g.bid.qty} × ${faces[g.bid.face-1]}`:'NO BID YET'}</span><span class="small">${g.bid?`${g.players[g.bid.by].name} made the last bid`:'Make the opening bid'}</span>`;
+    overlay=`<div class="overlay-chip">${g.ruleset==='Traditional'?'Wild ones · Spot On':'Standard dice'}</div>`;
+    privateArea=me.alive?`<span class="tiny-note">YOUR SECRET ROLL</span>${me.dice.map(v=>`<span class="die" aria-label="${v}">${faces[v-1]}</span>`).join('')}`:'';
+    if(yourTurn){actions=`<label class="tiny-note">Quantity <input id="bidQty" type="number" min="1" max="${living().length*5}" value="${g.bid?g.bid.qty:1}"></label><label class="tiny-note">Face <select id="bidFace">${faces.map((f,i)=>`<option value="${i+1}" ${g.bid?.face===i+1?'selected':''}>${f} ${i+1}</option>`).join('')}</select></label><button data-action="bid" class="gold">${g.bid?'Raise bid':'Make bid'}</button>${g.bid?'<button data-action="challenge" class="danger">Call bluff</button>':''}${g.bid&&g.ruleset==='Traditional'?'<button data-action="spot">Spot On</button>':''}`}
+  }
+  if(g.mode==='deck'){
+    center=`<span class="table-emblem">🂠</span><span class="big">${g.rank}'S TABLE</span><span class="small">${g.pending?`${g.players[g.pending.by].name} played ${g.pending.cards.length} face-down card${g.pending.cards.length>1?'s':''}`:'Play cards face down'}</span>`;
+    overlay=`<div class="overlay-chip">${g.ruleset} deck · ${g.pending?'Challenge or believe':'No claim yet'}</div>`;
+    privateArea=me.alive?`<span class="tiny-note">YOUR HAND</span>${me.hand.map((v,i)=>`<button class="card ${v==='♥'?'red':''} ${g.selected?.includes(i)?'selected':''}" data-card="${i}" aria-label="Select ${v}">${v}</button>`).join('')}`:'';
+    if(yourTurn)actions=`<button data-action="play" class="gold" ${me.hand.length?'':'disabled'}>Play selected cards</button>${g.pending?'<button data-action="challenge" class="danger">Call Liar!</button>':''}`;
+  }
+  if(g.mode==='poker'){
+    center=`<span class="table-emblem">♠</span><span class="big">${['PRE-FLOP','FLOP','TURN','RIVER'][g.street]}</span><span class="small">${g.community.slice(0,[0,3,4,5][g.street]).map(c=>c.label).join('  ·  ')||'Cards remain face down'}</span>`;
+    overlay=`<div class="overlay-chip">${g.players.reduce((n,p)=>n+(p.stake||0),0)} bullets on the table</div>`;
+    privateArea=me.alive?`<span class="tiny-note">YOUR POCKET CARDS</span>${me.cards.map(c=>`<span class="card ${c.red?'red':''}">${c.label}</span>`).join('')}`:'';
+    if(yourTurn)actions='<button data-action="call" class="gold">Call · +1 bullet</button><button data-action="fold">Fold</button><button data-action="switch" '+(me.switched?'disabled':'')+'>Switch card</button><button data-action="allin" class="danger">All in</button>';
+  }
+  if(g.mode==='roulette'){
+    center=`<span class="table-emblem">♥</span><span class="big">${g.pending?`${g.players[g.pending.by].name} CLAIMS ${g.pending.claim}`:'SPIN THE REELS'}</span><span class="small">${g.pending?`Visible reel: ${g.pending.reels[0]}`:'One reel is visible after a claim'}</span>`;
+    overlay=`<div class="overlay-chip">First to 5 points may Execute</div>`;
+    privateArea=me.alive&&me.reels?`<span class="tiny-note">YOUR LAST SPIN</span>${me.reels.map(v=>`<span class="slot">${v}</span>`).join('')}`:'';
+    if(yourTurn){if(!me.reels)actions=`<button data-action="spin" class="gold">Spin reels</button><button data-action="double" ${me.double?'disabled':''}>Double Spin</button>${g.pending?'<button data-action="challenge" class="danger">Call Liar!</button>':''}`;else actions=`<span class="tiny-note">CLAIM</span><select id="claim"><option value="1">1 Heart</option><option value="2">2 Hearts</option><option value="3">3 Hearts</option><option value="JACKPOT">Jackpot</option></select><button data-action="claim" class="gold">Declare</button>${g.pending?'<button data-action="challenge" class="danger">Call Liar!</button>':''}`;}
+    if(yourTurn&&me.points>=5&&me.points>Math.max(...g.players.filter(p=>p!==me&&p.alive).map(p=>p.points),-1))actions+='<button data-action="execute" class="danger">Execute lowest score</button>';
+  }
+  if(g.phase==='ended')actions='<button data-action="rematch" class="gold">Rematch</button><button data-action="lobby">Back to lobby</button>';
+  return {center,overlay,private:privateArea,actions};
+}
+function wireActions(){document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>act(b.dataset.action));document.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{let i=+b.dataset.card;game.selected??=[];if(game.selected.includes(i))game.selected=game.selected.filter(x=>x!==i);else if(game.selected.length<3)game.selected.push(i);render()})}
+function act(a){if(a==='rematch')return start();if(a==='lobby'){clearTimeout(botTimer);game=null;$('gameStatus').textContent='SALOON OPEN';$('roundLabel').textContent='WAITING FOR PLAYERS';$('turnRibbon').textContent='Choose a game to take your seat.';$('playerRow').innerHTML=$('privateArea').innerHTML=$('actionArea').innerHTML=$('tableOverlay').innerHTML=$('log').innerHTML='';$('message').textContent='Choose a mode and take your seat.';return}
+  if(!game||game.phase!=='playing'||game.turn!==0)return;
+  if(game.mode==='dice'){if(a==='bid')diceBid(0,+$('bidQty').value,+$('bidFace').value);if(a==='challenge')diceChallenge(0,false);if(a==='spot')diceChallenge(0,true)}
+  if(game.mode==='deck'){if(a==='play')deckPlay(0,game.selected||[]);if(a==='challenge')deckChallenge(0)}
+  if(game.mode==='poker')pokerAction(0,a);
+  if(game.mode==='roulette'){if(a==='spin')rouletteSpin(0,false);if(a==='double')rouletteSpin(0,true);if(a==='claim')rouletteClaim(0,$('claim').value);if(a==='challenge')rouletteChallenge(0);if(a==='execute')rouletteExecute(0)}
+  tone();render();scheduleBot();
+}
+function scheduleBot(){clearTimeout(botTimer);if(game?.phase==='playing'&&game.turn!==0)botTimer=setTimeout(botMove,750)}
+function botMove(){if(!game||game.phase!=='playing'||game.turn===0)return;const i=game.turn;
+  if(game.mode==='dice'){let b=game.bid;if(b&&(b.qty>=living().length*5&&b.face===6||Math.random()<(b.qty/(living().length*5)+.09)))diceChallenge(i,false);else{let qty=b?.qty||1,face=b?.face||rand(6)+1;if(b){if(face<6&&Math.random()<.5)face++;else{qty++;face=rand(6)+1}}diceBid(i,qty,face)}}
+  if(game.mode==='deck'){let p=game.players[i];if(game.pending&&(!p.hand.length||Math.random()<.28))deckChallenge(i);else if(p.hand.length){let matching=p.hand.map((v,k)=>(v===game.rank||v==='J'||v==='D')?k:-1).filter(k=>k>=0);let pick=matching.length&&Math.random()<.7?matching[0]:rand(p.hand.length);deckPlay(i,[pick])}else{game.round++;newDeckRound();log('The cards ran out. A new deal begins.')}}
+  if(game.mode==='poker')pokerAction(i,Math.random()<.15?'fold':'call');
+  if(game.mode==='roulette'){let p=game.players[i];if(game.pending&&Math.random()<.25)rouletteChallenge(i);else{if(!p.reels)rouletteSpin(i,false);if(game.turn===i&&game.phase==='playing'){let h=p.reels.filter(x=>x==='♥').length;rouletteClaim(i,Math.random()<.68?(h===4?'JACKPOT':String(Math.max(1,h))):String(1+rand(3)))}}}
+  render();scheduleBot();
+}
+function advance(){game.turn=next(game.turn);render();scheduleBot()}
+
+// Dice: the official bid is a minimum count. Equal quantity requires a higher face.
+function newDiceRound(){game.bid=null;for(const p of living())p.dice=Array.from({length:5},()=>1+rand(6));game.turn=game.turn??0;game.message='Secret dice rolled. Make the first bid.'}
+function diceBid(i,qty,face){const max=living().length*5,b=game.bid;if(!Number.isInteger(qty)||qty<1||qty>max||face<1||face>6||b&&(qty<b.qty||qty===b.qty&&face<=b.face)){say('That bid must raise the quantity or raise the face at the same quantity.');return}game.bid={qty,face,by:i};log(`${game.players[i].name} bids ${qty} ${faces[face-1]}s.`);game.message=`${game.players[i].name} bids ${qty} ${faces[face-1]}s.`;advance()}
+function diceChallenge(i,spot){let b=game.bid;if(!b)return;let total=living().flatMap(p=>p.dice).filter(x=>x===b.face||(game.ruleset==='Traditional'&&b.face!==1&&x===1)).length;let loser;if(spot){if(total===b.qty){for(const p of living())if(p!==game.players[i])p.poison++;log(`${game.players[i].name} called Spot On: exactly ${total}! Everyone else drinks.`)}else{loser=game.players[i];loser.poison++;log(`${game.players[i].name}'s Spot On missed. Actual count: ${total}.`)}}else{loser=game.players[total<b.qty?b.by:i];loser.poison++;log(`${game.players[i].name} called bluff. Actual count: ${total}. ${loser.name} drinks.`)}for(const p of living())if(p.poison>=2){p.alive=false;log(`${p.name} is out of the dice game.`)}if(endCheck())return;game.round++;game.turn=loser?.alive?game.players.indexOf(loser):next(i);newDiceRound();game.message=`Dice revealed: ${total} matching. Fresh rolls for round ${game.round}.`;render();scheduleBot()}
+
+// Deck: cards are dealt anew after every challenge. A chamber position belongs to each player for the match.
+function deckPack(){return shuffle(game.ruleset==='Chaos adaptation'?[...Array(5).fill('K'),...Array(5).fill('Q'),'M','C']:[...Array(6).fill('A'),...Array(6).fill('K'),...Array(6).fill('Q'),'J','J',...(game.ruleset==='Devil'?['D']:[])]).slice()}
+function newDeckRound(){let pack=deckPack();game.rank=game.ruleset==='Chaos adaptation'?['K','Q'][rand(2)]:['A','K','Q'][rand(3)];for(const p of living())p.hand=pack.splice(0,game.ruleset==='Chaos adaptation'?3:5);game.pending=null;game.selected=[];game.message=`${game.rank}'s table. Play ${game.ruleset==='Chaos adaptation'?'one card':'one to three cards'}, or challenge the previous claim.`}
+function deckPlay(i,indices){let p=game.players[i];if(!indices.length||indices.length>(game.ruleset==='Chaos adaptation'?1:3)||new Set(indices).size!==indices.length||indices.some(k=>k<0||k>=p.hand.length)){say(`Select ${game.ruleset==='Chaos adaptation'?'one card':'one to three cards'} first.`);return}let cards=indices.sort((a,b)=>b-a).map(k=>p.hand.splice(k,1)[0]);if(cards.includes('D')&&cards.length!==1){p.hand.push(...cards);say('The Devil card must be played alone.');return}game.pending={by:i,cards};game.selected=[];log(`${p.name} placed ${cards.length} card${cards.length>1?'s':''}, claiming ${game.rank}.`);game.message=`${p.name} claims ${cards.length} ${game.rank}${cards.length>1?'s':''}.`;advance()}
+function trigger(p){p.pulls++;let fired=p.pulls===p.loaded;if(fired){p.alive=false;log(`${p.name}'s chamber fired. ${p.name} is eliminated.`)}else log(`${p.name} pulled the trigger and survived (${p.pulls}/6).`);return fired}
+function deckChallenge(i){let pending=game.pending;if(!pending)return;let player=game.players[pending.by],challenger=game.players[i],devil=pending.cards[0]==='D',chaos=pending.cards[0]==='C',master=pending.cards[0]==='M';let truthful=pending.cards.every(c=>c===game.rank||c==='J');log(`${challenger.name} called Liar. Revealed: ${pending.cards.join(', ')}.`);if(devil&&game.ruleset==='Devil'){for(const p of living())if(p!==player)trigger(p)}else if(game.ruleset==='Chaos adaptation'&&chaos){for(const p of living())trigger(p)}else if(game.ruleset==='Chaos adaptation'&&master){trigger(challenger)}else trigger(truthful?challenger:player);if(endCheck())return;game.round++;game.turn=next(i);newDeckRound();game.message=devil?'The Devil card was revealed. A new deal begins.':`The claim was ${truthful?'true':'false'}. A new deal begins.`;render();scheduleBot()}
+
+// Poker is an explicit house implementation of the broad Steam description.
+function pokerDeck(){const suits=['♠','♥','♦','♣'];return shuffle(suits.flatMap((s,si)=>Array.from({length:13},(_,n)=>({rank:n+2,suit:s,label:`${'23456789TJQKA'[n]}${s}`,red:si===1||si===2}))))}
+function newPokerRound(){let deck=pokerDeck();game.community=deck.splice(0,5);for(const p of living()){p.cards=deck.splice(0,2);p.stake=0;p.folded=false}game.street=0;game.acted=[];game.message='Private cards dealt. Call, fold, switch, or go all in.'}
+function pokerAction(i,a){let p=game.players[i];if(a==='switch'){if(p.switched||game.street>=3){say('Switch is available once per match, before the river.');return}p.cards[rand(2)]=pokerDeck()[0];p.switched=true;log(`${p.name} switched a private card.`);game.message=`${p.name} switched a card. Choose a betting action.`;return}
+  if(a==='fold'){p.folded=true;p.stake=Math.max(1,p.stake);log(`${p.name} folded and faces ${p.stake} bullet${p.stake>1?'s':''}.`);pokerRisk(p)}else if(a==='allin'){p.stake=6;log(`${p.name} went all in.`)}else if(a==='call'){p.stake=Math.min(6,p.stake+1);log(`${p.name} called with a bullet.`)}else return;
+  game.acted.push(i);let active=living().filter(x=>!x.folded);if(endCheck())return;
+  if(active.length<=1){pokerResolve();return}
+  const wait=active.find(x=>!game.acted.includes(game.players.indexOf(x)));if(wait){game.turn=game.players.indexOf(wait);game.message=`${wait.name} decides on the ${['pre-flop','flop','turn','river'][game.street]}.`;return}
+  if(game.street<3){game.street++;game.acted=[];game.turn=game.players.indexOf(active[0]);game.message=`${['','Flop','Turn','River'][game.street]} revealed. Betting continues.`;log(game.message)}else pokerResolve();
+}
+function pokerRisk(p){const risk=Math.min(6,p.stake);if(rand(6)<risk){p.alive=false;log(`${p.name} was eliminated by the ${risk}/6 chamber risk.`)}else log(`${p.name} survived the ${risk}/6 chamber risk.`)}
+function score(cards){let best=[0];const c=cards;for(let a=0;a<c.length-4;a++)for(let b=a+1;b<c.length-3;b++)for(let d=b+1;d<c.length-2;d++)for(let e=d+1;e<c.length-1;e++)for(let f=e+1;f<c.length;f++){let hand=[c[a],c[b],c[d],c[e],c[f]],r=hand.map(x=>x.rank).sort((x,y)=>y-x),counts=[...new Set(r)].map(x=>[x,r.filter(y=>y===x).length]).sort((x,y)=>y[1]-x[1]||y[0]-x[0]),flush=hand.every(x=>x.suit===hand[0].suit),uniq=[...new Set(r)],straight=uniq.length===5&&(uniq[0]-uniq[4]===4||JSON.stringify(uniq)==='[14,5,4,3,2]'),hi=uniq[0]===14&&uniq[1]===5?5:uniq[0],v=flush&&straight?[8,hi]:counts[0][1]===4?[7,counts[0][0],counts[1][0]]:counts[0][1]===3&&counts[1][1]===2?[6,counts[0][0],counts[1][0]]:flush?[5,...r]:straight?[4,hi]:counts[0][1]===3?[3,counts[0][0],...counts.slice(1).map(x=>x[0])]:counts[0][1]===2&&counts[1][1]===2?[2,...counts.map(x=>x[0])]:counts[0][1]===2?[1,...counts.map(x=>x[0])]:[0,...r];if(compare(v,best)>0)best=v}return best}
+function compare(a,b){for(let i=0;i<Math.max(a.length,b.length);i++){let d=(a[i]||0)-(b[i]||0);if(d)return d}return 0}
+function pokerResolve(){let contenders=living().filter(p=>!p.folded);if(contenders.length){let top=contenders.map(p=>({p,s:score([...p.cards,...game.community])})).sort((a,b)=>compare(b.s,a.s));let winner=top[0].p;log(`Showdown: ${winner.name} wins with ${top[0].s[0]+1}-tier hand.`);for(const p of contenders)if(p!==winner)pokerRisk(p)}if(endCheck())return;game.round++;game.turn=next(game.turn);newPokerRound();render();scheduleBot()}
+
+// Roulette scoring and Death Spin details below are labeled house rules in the UI.
+const reelSymbols=['♥','♠','◆','♣'];
+function newRouletteRound(){for(const p of living())p.reels=null;game.pending=null;game.message='Spin the four reels. One symbol will remain public.'}
+function rouletteSpin(i,double){let p=game.players[i];if(double){if(p.double){say('Double Spin has already been used.');return}p.double=true}if(game.pending)rouletteAccept();let roll=()=>Array.from({length:4},()=>reelSymbols[rand(4)]);p.reels=roll();if(double){const second=roll();if(second.filter(x=>x==='♥').length>p.reels.filter(x=>x==='♥').length)p.reels=second}log(`${p.name} spun the reels${double?' twice':''}. One reel shows ${p.reels[0]}.`);game.message=`${p.name} has spun. Make a claim.`}
+function rouletteClaim(i,claim){let p=game.players[i];if(!p.reels){say('Spin before making a claim.');return}if(!['1','2','3','JACKPOT'].includes(claim))return;game.pending={by:i,claim,reels:p.reels.slice()};p.reels=null;log(`${p.name} claims ${claim==='JACKPOT'?'Jackpot':`${claim} Heart${claim==='1'?'':'s'}`}.`);game.message=`${p.name} claims ${claim}. Challenge or take the next spin.`;advance()}
+function rouletteTruth(p){let c=p.claim;return c==='JACKPOT'?p.reels.every(x=>x===p.reels[0]):p.reels.filter(x=>x==='♥').length>=+c}
+function deathSpin(p){let result=reelSymbols[rand(4)];if(result!=='♥'){p.alive=false;log(`${p.name}'s Death Spin showed ${result}: eliminated.`)}else{let amount=game.pending?.claim==='JACKPOT'?4:Number(game.pending?.claim||0);p.points=Math.max(0,p.points-amount);log(`${p.name}'s Death Spin showed ♥: survived.`)}}
+function rouletteChallenge(i){let q=game.pending;if(!q)return;let truthful=rouletteTruth(q),loser=game.players[truthful?i:q.by];log(`${game.players[i].name} called Liar. The reels were ${q.reels.join(' ')}: ${truthful?'truthful':'a bluff'}.`);deathSpin(loser);if(endCheck())return;game.round++;game.turn=loser.alive?game.players.indexOf(loser):next(i);newRouletteRound();render();scheduleBot()}
+function rouletteExecute(i){let p=game.players[i],others=living().filter(x=>x!==p);if(p.points<5||others.some(x=>x.points>=p.points)){say('Execute requires at least five points and the sole highest score.');return}let low=Math.min(...others.map(x=>x.points)),targets=others.filter(x=>x.points===low),target=targets[rand(targets.length)];target.alive=false;log(`${p.name} executed ${target.name}, the lowest-scoring player.`);if(endCheck())return;game.turn=next(i);game.round++;newRouletteRound();render();scheduleBot()}
+function rouletteAccept(){let q=game.pending;if(!q)return;let p=game.players[q.by],amount=q.claim==='JACKPOT'?4:+q.claim;p.points+=amount;log(`${p.name}'s claim stood. +${amount} point${amount>1?'s':''}.`);game.pending=null}
+
+function ruleDialog(){let html=Object.entries(modes).map(([key,m])=>`<section><h3>${m.name}</h3><ol>${m.steps.map(s=>`<li>${s}</li>`).join('')}</ol></section>`).join('');$('fullRules').innerHTML=`<div class="full-rules"><p>This is an original local solo game inspired by Curve Animation's Liar's Bar. The broad four-mode descriptions come from the <a href="https://store.steampowered.com/app/3097560/Liar_s_Bar/" target="_blank" rel="noopener">official Steam store page</a>. Traditional Dice and Devil Deck were announced in the <a href="https://steamcommunity.com/games/3097560/announcements/detail/4532401922180522149" target="_blank" rel="noopener">official update</a>. Chaos Deck is mentioned in a <a href="https://steamcommunity.com/app/3097560/discussions/0/603018753649740391/" target="_blank" rel="noopener">community guide</a>. When publisher detail is absent, the table uses its own clearly labeled house rules.</p>${html}<section><h3>Prototype details</h3><p>Play is against computer opponents on this device. Online matchmaking, private rooms and real-time multiplayer are not present. The Poker bullet risk, Roulette scoring, and Chaos card behavior are local adaptations. The interface artwork is original and does not use the commercial game's characters or assets.</p></section></div>`;$('rulesDialog').showModal()}
+
+$('startButton').onclick=start;$('rulesButton').onclick=ruleDialog;$('footerRules').onclick=ruleDialog;$('closeRules').onclick=()=>$('rulesDialog').close();$('soundButton').onclick=()=>{sound=!sound;$('soundButton').textContent=sound?'Sound on':'Sound off';$('soundButton').setAttribute('aria-pressed',String(sound))};setup();

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#120b09">
+  <title>The Liar's Table — Saloon bluffing game</title>
+  <meta name="description" content="Four cinematic bluffing games at one saloon table: Dice, Deck, Poker and Roulette.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">◆</span><div><span class="eyebrow">BLUFF · RISK · SURVIVE</span><h1>THE LIAR'S TABLE</h1></div></div>
+      <div class="top-actions"><span id="gameStatus" class="status-pill">SALOON OPEN</span><button id="rulesButton" class="subtle-button">Rules & sources</button><button id="soundButton" class="subtle-button" aria-pressed="true">Sound on</button></div>
+    </header>
+
+    <main>
+      <section class="hero" aria-label="Saloon game table">
+        <div class="hero-wash"></div>
+        <div class="hero-heading"><span class="eyebrow">THE NIGHT IS YOUNG</span><h2>Read the room.<br><em>Raise the stakes.</em></h2><p>Four games of nerve at one table. Pick your seat and see who is still standing by last call.</p></div>
+        <div class="table-overlay" id="tableOverlay" aria-live="polite"></div>
+        <div class="turn-ribbon" id="turnRibbon">Choose a game to take your seat.</div>
+      </section>
+
+      <section class="game-layout">
+        <aside class="panel left-panel">
+          <div class="panel-title"><span>01 / SELECT A GAME</span><span class="gold-rule"></span></div>
+          <div class="mode-grid" id="modeGrid"></div>
+          <div class="divider"></div>
+          <div class="panel-title"><span>YOUR CHARACTER</span></div>
+          <div class="character-grid" id="characterGrid"></div>
+          <div class="options-row"><label for="rulesetSelect">Ruleset</label><select id="rulesetSelect"></select></div>
+          <div class="options-row"><label for="playerCount">Players</label><select id="playerCount"><option value="2">2 players</option><option value="3">3 players</option><option value="4" selected>4 players</option></select></div>
+          <button id="startButton" class="primary-button">Take a seat <span>→</span></button>
+          <p class="tiny-note">Solo table with computer opponents. Private online rooms are not active in this build.</p>
+        </aside>
+
+        <section class="panel play-panel">
+          <div class="panel-title"><span>02 / THE TABLE</span><span id="roundLabel">WAITING FOR PLAYERS</span></div>
+          <div class="player-row" id="playerRow"></div>
+          <div class="table-felt"><div class="table-inlay"><div class="table-center" id="tableCenter"><span class="table-emblem">◆</span><span>THE LIAR'S TABLE</span></div></div></div>
+          <div class="message" id="message">Choose a mode and take your seat.</div>
+          <div class="private-area" id="privateArea"></div>
+          <div class="action-area" id="actionArea"></div>
+        </section>
+
+        <aside class="panel right-panel">
+          <div class="panel-title"><span>03 / HOW TO PLAY</span></div>
+          <div id="rulesSummary" class="rules-summary"></div>
+          <div class="divider"></div>
+          <div class="panel-title"><span>TABLE TALK</span></div>
+          <ol id="log" class="log"></ol>
+        </aside>
+      </section>
+    </main>
+    <footer>Original saloon artwork and interface · Inspired by classic bluffing games · <button id="footerRules">Read rules and attribution</button></footer>
+  </div>
+
+  <dialog id="rulesDialog"><div class="dialog-head"><div><span class="eyebrow">THE HOUSE BOOK</span><h2>Rules & provenance</h2></div><button id="closeRules" aria-label="Close rules">✕</button></div><div id="fullRules"></div></dialog>
+  <script src="game.js" defer></script>
+</body>
+</html>
