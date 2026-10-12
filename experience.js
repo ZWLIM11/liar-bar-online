@@ -1,0 +1,7 @@
+let entryMode='solo';
+function enterLobby(mode){const name=$('playerName').value.trim().replace(/[^\p{L}\p{N} _-]/gu,'').slice(0,20);if(!name){$('entryNotice').textContent='Enter your name to take a seat.';$('playerName').focus();return}names[0]=name;$('playerName').value=name;$('onlineName').value=name;entryMode=mode;document.body.classList.toggle('online-choice',mode==='online');$('entryNotice').textContent='';$('lobbySetup').hidden=false;$('onlineSetup').hidden=mode!=='online';$('startButton').hidden=mode==='online';$('lobbyTitle').textContent=mode==='solo'?'Your solo table':'Your private online table';document.body.classList.add('setup-open');$('lobbySetup').scrollIntoView({behavior:'smooth',block:'start'});}
+$('chooseSolo').onclick=()=>enterLobby('solo');$('chooseOnline').onclick=()=>enterLobby('online');$('backWelcome').onclick=()=>{if(onlineSession)return;$('lobbySetup').hidden=true;document.body.classList.remove('setup-open');window.scrollTo(0,0)};
+$('tableRules').onclick=()=>$('rulesButton').click();
+$('exitTable').onclick=async()=>{if(onlineSession){await roomCommand('leave');if(onlineSession)return}else act('lobby');document.body.classList.remove('in-game');window.scrollTo(0,0)};
+window.addEventListener('table-state',()=>{if(game){document.body.classList.add('in-game');window.scrollTo(0,0)}});
+if(new URLSearchParams(location.search).has('room')){$('entryNotice').textContent='You have a room invite. Enter your name and choose Play online.';}

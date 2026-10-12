@@ -11,11 +11,11 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Wrangler. Choose a mode, ruleset, player count and AI difficulty, then **Play solo**. For private multiplayer, enter your name, create a room, and share **Copy invite**. Friends join, everyone marks Ready, and the host starts. Rooms support 2–4 human players; solo supports 1–3 AI opponents.
+Open the local URL printed by Wrangler. The front page asks for your name and offers **Play with AI** or **Play online**. Choose your mode and table settings, then enter the table. Gameplay fills the viewport with a first-person 3D saloon and an overlaid hand/action dock. For private multiplayer, enter your name, create a room, and share **Copy invite**. Friends join, everyone marks Ready, and the host starts. Rooms support 2–4 human players; solo supports 1–3 AI opponents.
 
 ## Camera and effects
 
-Drag the 3D canvas to turn, scroll to zoom, or focus it and use arrow keys. R and Reset view recenter. Toggle first-person/table overview or fullscreen. Gun raising, muzzle flash, smoke, recoil, card and dice movement accompany game events. Sound and gentle effects can be toggled; reduced-motion preferences are respected. The room and human characters are procedural, stylized Three.js models, not photorealistic scanned assets.
+Drag the 3D canvas to turn, scroll to zoom, or focus it and use arrow keys. R and Reset view recenter. Toggle first-person/table overview or fullscreen. The revolver has a chamber cylinder, hammer, trigger guard and articulated grip hand. Its three-second sequence raises the gun, cocks the hammer, fires with synchronized sound/flash/recoil, then lowers it. Smoke drifts from the muzzle. Preview gunshot demonstrates the effect without changing the match. Solo AI pauses for penalty animations. Sound and gentle effects can be toggled; reduced-motion preferences are respected. The room and human characters are procedural, stylized Three.js models, not photorealistic scanned assets.
 
 ## Modes
 
@@ -52,3 +52,7 @@ The full game must be deployed as a **Worker with Durable Objects**, using the i
 - `vendor/` — Three.js (MIT, license included)
 - `assets/saloon.png` — original generated fallback artwork
 - `RULES.md` — official sources and explicit house-rule differences
+
+## Build identification
+
+The landing page displays **FIRST-PERSON EDITION · BUILD 3**. If you see the old oval table dashboard or “Take a seat”, your host is serving an earlier build: rebuild the latest main branch. Asset revalidation headers and versioned entry scripts are included.

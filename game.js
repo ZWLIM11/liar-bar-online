@@ -83,7 +83,7 @@ function tableData(){const g=game,me=g.players[localSeat],yourTurn=g.turn===loca
   return {center,overlay,private:privateArea,actions};
 }
 function wireActions(){document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>act(b.dataset.action));document.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{let i=+b.dataset.card;game.selected??=[];if(game.selected.includes(i))game.selected=game.selected.filter(x=>x!==i);else if(game.selected.length<3)game.selected.push(i);render()})}
-function act(a){if(onlineSession)return onlineAct(a);if(a==='rematch')return start();if(a==='lobby'){clearTimeout(botTimer);game=null;$('gameStatus').textContent='SALOON OPEN';$('roundLabel').textContent='WAITING FOR PLAYERS';$('turnRibbon').textContent='Choose a game to take your seat.';$('playerRow').innerHTML=$('privateArea').innerHTML=$('actionArea').innerHTML=$('tableOverlay').innerHTML=$('log').innerHTML='';$('message').textContent='Choose a mode and take your seat.';return}
+function act(a){if(onlineSession)return onlineAct(a);if(a==='rematch')return start();if(a==='lobby'){clearTimeout(botTimer);game=null;document.body.classList.remove('in-game');window.dispatchEvent(new CustomEvent('table-reset'));$('gameStatus').textContent='SALOON OPEN';$('roundLabel').textContent='WAITING FOR PLAYERS';$('turnRibbon').textContent='Choose a game to take your seat.';$('playerRow').innerHTML=$('privateArea').innerHTML=$('actionArea').innerHTML=$('tableOverlay').innerHTML=$('log').innerHTML='';$('message').textContent='Choose a mode and take your seat.';return}
   if(!game||game.phase!=='playing'||game.turn!==0)return;
   if(game.mode==='dice'){if(a==='bid')diceBid(0,+$('bidQty').value,+$('bidFace').value);if(a==='challenge')diceChallenge(0,false);if(a==='spot')diceChallenge(0,true)}
   if(game.mode==='deck'){if(a==='play')deckPlay(0,game.selected||[]);if(a==='challenge')deckChallenge(0)}
@@ -91,7 +91,7 @@ function act(a){if(onlineSession)return onlineAct(a);if(a==='rematch')return sta
   if(game.mode==='roulette'){if(a==='spin')rouletteSpin(0,false);if(a==='double')rouletteSpin(0,true);if(a==='claim')rouletteClaim(0,$('claim').value);if(a==='challenge')rouletteChallenge(0);if(a==='execute')rouletteExecute(0)}
   tone();render();scheduleBot();
 }
-function scheduleBot(){if(onlineSession)return;clearTimeout(botTimer);if(game?.phase==='playing'&&game.turn!==0)botTimer=setTimeout(botMove,750)}
+function scheduleBot(){if(onlineSession)return;clearTimeout(botTimer);if(game?.phase==='playing'&&game.turn!==0)botTimer=setTimeout(botMove,Math.max(1100,(window.cinematicUntil||0)-performance.now()+150))}
 function botMove(){if(!game||game.phase!=='playing'||game.turn===0)return;const i=game.turn;
   if(game.mode==='dice'){let b=game.bid;if(b&&(b.qty>=living().length*5&&b.face===6||Math.random()<(b.qty/(living().length*5)+.09)))diceChallenge(i,false);else{let qty=b?.qty||1,face=b?.face||rand(6)+1;if(b){if(face<6&&Math.random()<.5)face++;else{qty++;face=rand(6)+1}}diceBid(i,qty,face)}}
   if(game.mode==='deck'){let p=game.players[i];if(game.pending&&(!p.hand.length||Math.random()<.28))deckChallenge(i);else if(p.hand.length){let matching=p.hand.map((v,k)=>(v===game.rank||v==='J'||v==='D')?k:-1).filter(k=>k>=0);let pick=matching.length&&Math.random()<.7?matching[0]:rand(p.hand.length);deckPlay(i,[pick])}else{game.round++;newDeckRound();log('The cards ran out. A new deal begins.')}}

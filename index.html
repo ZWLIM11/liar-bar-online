@@ -1,31 +1,11 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#120b09">
-  <title>The Liar's Table — Saloon bluffing game</title>
-  <meta name="description" content="Four cinematic bluffing games at one saloon table: Dice, Deck, Poker and Roulette.">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark">◆</span><div><span class="eyebrow">BLUFF · RISK · SURVIVE</span><h1>THE LIAR'S TABLE</h1></div></div>
-      <div class="top-actions"><span id="gameStatus" class="status-pill">SALOON OPEN</span><button id="rulesButton" class="subtle-button">Rules & sources</button><button id="soundButton" class="subtle-button" aria-pressed="true">Sound on</button></div>
-    </header>
-
-    <main>
-      <section class="panel online-panel">          <div class="panel-title"><span>PRIVATE ONLINE ROOM</span></div>
-          <div class="online-controls"><label class="online-label">Your name<input id="onlineName" maxlength="20" placeholder="Player name" autocomplete="nickname"></label>
-          <button id="createRoom" class="subtle-button">Create room</button>
-          <label class="online-label">Room code<input id="joinCode" maxlength="10" placeholder="10-character code" autocapitalize="characters"></label>
-          <button id="joinRoom" class="subtle-button">Join room</button>
-          <button id="reconnectRoom" class="subtle-button" hidden>Reconnect saved seat</button>
-          </div><p id="onlineNotice" class="tiny-note" role="status">Online rooms require the Cloudflare server.</p>
-          <div id="roomLobby" hidden><p class="tiny-note">Room <strong id="roomCode"></strong></p><p id="roomSeats" class="tiny-note"></p><div class="room-buttons"><button id="copyRoom">Copy invite</button><button id="roomReady">Ready</button><button id="roomStart">Start match</button><button id="leaveRoom">Leave room</button></div></div></section>
-      <section class="game-layout">
-        <aside class="panel left-panel">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#120b09"><title>The Liar's Table — Enter the saloon</title><link rel="stylesheet" href="styles.css?v=3"><link rel="stylesheet" href="experience.css?v=3"></head>
+<body><main>
+<section id="frontPage" class="front-page">
+<header class="front-nav"><a class="wordmark" href="./">◆ THE LIAR'S TABLE</a><button id="rulesButton" class="subtle-button">Rules & sources</button></header>
+<div class="welcome"><span class="eyebrow">A SEAT. A SECRET. ONE LAST CHANCE.</span><h1>Trust no one.<br><em>Take your seat.</em></h1><p>A late-night table of bluffs, cold nerves and loaded chances.<br>Play against AI or bring your friends into a private room.</p><span class="build-label">FIRST-PERSON EDITION · BUILD 3</span></div>
+<div class="entry-card"><div class="entry-heading"><span class="eyebrow">ENTER THE SALOON</span><h2>What do they call you?</h2></div><label for="playerName">Your name</label><input id="playerName" maxlength="20" placeholder="Enter your name" autocomplete="nickname" required><p id="entryNotice" role="status"></p><div class="entry-options"><button id="chooseSolo"><span>01 / SOLO TABLE</span><strong>Play with AI →</strong><small>Choose your game and difficulty</small></button><button id="chooseOnline"><span>02 / PRIVATE TABLE</span><strong>Play online →</strong><small>Create a room or join your friends</small></button></div></div>
+<div id="lobbySetup" class="lobby-setup" hidden><div class="lobby-heading"><h2 id="lobbyTitle">Set your table</h2><button id="backWelcome" class="subtle-button">← Back</button></div><div class="setup-columns"><aside class="panel left-panel">
           <div class="panel-title"><span>01 / SELECT A GAME</span><span class="gold-rule"></span></div>
           <div class="mode-grid" id="modeGrid"></div>
           <div class="divider"></div>
@@ -36,43 +16,24 @@
           <div class="options-row"><label for="aiDifficulty">Solo AI</label><select id="aiDifficulty"><option value="casual">Casual</option><option value="standard" selected>Standard</option><option value="expert">Expert</option></select></div><button id="startButton" class="primary-button">Play solo <span>→</span></button>
           <p class="tiny-note">Solo table with computer opponents.</p>
 
-        </aside>
-
-        <div class="table-column">
-      <section class="scene-panel" aria-label="First-person 3D saloon">
-        <div id="sceneHost"></div>
-        <div class="scene-top"><span class="eyebrow">YOUR SEAT AT THE TABLE</span><span id="sceneEvent" role="status"></span></div>
-        <div class="table-overlay" id="tableOverlay" aria-live="polite"></div>
-        <div class="scene-bottom"><div id="turnRibbon">Choose a mode, then play solo or invite friends.</div><div class="view-controls"><button id="cameraView">Table overview</button><button id="resetView">Reset view</button><button id="motionButton">Effects: cinematic</button><button id="fullView">Fullscreen</button></div><span id="viewHint">Loading 3D saloon…</span></div>
-      </section>
-        <div class="table-column">
-        <section class="panel play-panel">
-          <div class="panel-title"><span>02 / THE TABLE</span><span id="roundLabel">WAITING FOR PLAYERS</span></div>
-          <div class="player-row" id="playerRow"></div>
-          <div class="table-felt"><div class="table-inlay"><div class="table-center" id="tableCenter"><span class="table-emblem">◆</span><span>THE LIAR'S TABLE</span></div></div></div>
-          <div class="message" id="message">Choose a mode and take your seat.</div>
-          <div class="private-area" id="privateArea"></div>
-          <div class="action-area" id="actionArea"></div>
-        </section>
-
-        </div>
-        </div>
-        <aside class="panel right-panel">
-          <div class="panel-title"><span>03 / HOW TO PLAY</span></div>
-          <div id="rulesSummary" class="rules-summary"></div>
-          <div class="divider"></div>
-          <div class="panel-title"><span>TABLE TALK</span></div>
-          <ol id="log" class="log"></ol>
-        </aside>
-      </section>
-    </main>
-    <footer>Original saloon artwork and interface · Inspired by classic bluffing games · <button id="footerRules">Read rules and attribution</button></footer>
-  </div>
-
-  <dialog id="rulesDialog"><div class="dialog-head"><div><span class="eyebrow">THE HOUSE BOOK</span><h2>Rules & provenance</h2></div><button id="closeRules" aria-label="Close rules">✕</button></div><div id="fullRules"></div></dialog>
-  <script src="game.js" defer></script>
-  <script src="online.js" defer></script>
-  <script src="ai.js" defer></script>
-  <script type="module" src="scene.js"></script>
-</body>
-</html>
+        </aside><div id="onlineSetup" hidden><section class="panel online-panel">          <div class="panel-title"><span>PRIVATE ONLINE ROOM</span></div>
+          <div class="online-controls"><label class="online-label">Your name<input id="onlineName" maxlength="20" placeholder="Player name" autocomplete="nickname"></label>
+          <button id="createRoom" class="subtle-button">Create room</button>
+          <label class="online-label">Room code<input id="joinCode" maxlength="10" placeholder="10-character code" autocapitalize="characters"></label>
+          <button id="joinRoom" class="subtle-button">Join room</button>
+          <button id="reconnectRoom" class="subtle-button" hidden>Reconnect saved seat</button>
+          </div><p id="onlineNotice" class="tiny-note" role="status">Create a private table or enter an invite code.</p>
+          <div id="roomLobby" hidden><p class="tiny-note">Room <strong id="roomCode"></strong></p><p id="roomSeats" class="tiny-note"></p><div class="room-buttons"><button id="copyRoom">Copy invite</button><button id="roomReady">Ready</button><button id="roomStart">Start match</button><button id="leaveRoom">Leave room</button></div></div></section>
+      </div><div class="lobby-rules"><div id="rulesSummary"></div></div></div></div>
+<footer>Original browser game · Private rooms for 2–4 players · <button id="footerRules">Rules and attribution</button></footer>
+</section>
+<section id="gameScreen" class="game-screen" aria-label="First-person table">
+<div id="sceneHost"></div><div class="lens-shade"></div>
+<header class="game-top"><button id="exitTable" class="subtle-button">← Leave table</button><div><span id="gameStatus">SALOON OPEN</span><span id="roundLabel"></span></div><button id="soundButton" class="subtle-button" aria-pressed="true">Sound on</button><button id="tableRules" class="subtle-button">Rules</button></header>
+<div id="playerRow" class="player-row"></div><div id="sceneEvent" role="status"></div><div id="tableOverlay" class="table-overlay" aria-live="polite"></div>
+<div class="camera-tools"><button id="cameraView">Table overview</button><button id="resetView">Reset view</button><button id="motionButton">Effects: cinematic</button><button id="fullView">Fullscreen</button><button id="rehearseShot" title="Visual and sound preview only; does not change the match">Preview gunshot</button><span id="viewHint">Loading 3D…</span></div>
+<details class="table-talk"><summary>Table talk</summary><ol id="log" class="log"></ol></details>
+<div class="play-dock"><div class="dock-heading"><div id="turnRibbon"></div><div id="tableCenter" class="table-center"></div></div><div id="message" class="message"></div><div id="privateArea" class="private-area"></div><div id="actionArea" class="action-area"></div></div>
+</section></main>
+<dialog id="rulesDialog"><div class="dialog-head"><div><span class="eyebrow">THE HOUSE BOOK</span><h2>Rules & provenance</h2></div><button id="closeRules" aria-label="Close rules">✕</button></div><div id="fullRules"></div></dialog>
+<script src="game.js?v=3" defer></script><script src="online.js?v=3" defer></script><script src="ai.js?v=3" defer></script><script src="experience.js?v=3" defer></script><script type="module" src="scene.js?v=3"></script></body></html>
