@@ -35,3 +35,22 @@ window.addEventListener('table-state',()=>{
  if(game.mode==='poker')$('lifeMeter').textContent='YOUR GUN · '+(p.stake||0)+' / 6 BULLETS';
  if(game.mode==='deck'){const total=(game.tablePlays||[]).reduce((n,p)=>n+p.count,0);const count=document.createElement('small');count.className='pile-count';count.textContent=total+' cards on the table · face-down until challenged';$('tableCenter').append(count);}
 });
+
+// Large touch targets keep bidding in one compact action strip.
+window.addEventListener('table-state',()=>{
+ const qty=$('bidQty'),face=$('bidFace');if(!qty||!face)return;
+ const max=Number(qty.max),bid=game.bid;
+ qty.value=String(bid?(bid.face===6?Math.min(max,bid.qty+1):bid.qty):1);
+ face.value=String(bid&&bid.face<6?bid.face+1:1);
+ qty.parentElement.classList.add('quantity-control');
+ const minus=document.createElement('button'),plus=document.createElement('button');minus.type=plus.type='button';minus.textContent='−';plus.textContent='+';minus.setAttribute('aria-label','Decrease bid quantity');plus.setAttribute('aria-label','Increase bid quantity');qty.before(minus);qty.after(plus);
+ const picker=document.createElement('div');picker.className='face-picker';picker.setAttribute('role','group');picker.setAttribute('aria-label','Bid face');face.parentElement.hidden=true;face.parentElement.after(picker);
+ const submit=document.querySelector('[data-action="bid"]');
+ function refresh(){const n=Number(qty.value);let selected=Number(face.value);const legal=f=>!bid||n>bid.qty||n===bid.qty&&f>bid.face;
+  if(!legal(selected)){selected=[1,2,3,4,5,6].find(legal)||selected;face.value=String(selected)}
+  picker.querySelectorAll('button').forEach((b,i)=>{b.disabled=!legal(i+1);b.setAttribute('aria-pressed',String(i+1===selected))});
+  minus.disabled=n<=Math.max(1,bid?.qty||1);plus.disabled=n>=max;submit.disabled=!Number.isInteger(n)||n<1||n>max||!legal(selected);submit.textContent='Bid '+n+' × '+selected;
+ }
+ for(let i=1;i<=6;i++){const b=document.createElement('button');b.type='button';b.textContent=faces[i-1];b.setAttribute('aria-label','Bid face '+i);b.onclick=()=>{face.value=String(i);refresh()};picker.append(b)}
+ minus.onclick=()=>{qty.value=String(Math.max(bid?.qty||1,Number(qty.value)-1));refresh()};plus.onclick=()=>{qty.value=String(Math.min(max,Number(qty.value)+1));refresh()};qty.oninput=refresh;refresh();
+});

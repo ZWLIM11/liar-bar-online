@@ -79,3 +79,6 @@ Shooting now smoothly interpolates from the resting table pose, with cocking sou
 
 ### Build 8 — table feedback
 Played Deck cards now fly into a persistent face-down 3D pile. Challenges flip the resolved cards face-up briefly. Numbered public action notices identify callers and outcomes without repeating on room polling. Chamber tracks show spent pulls, loaded bullet count and the conditional next-pull risk; chamber positions remain private. Steam presentation reference: https://steamcommunity.com/app/3097560/announcements/ (Deck Remastered UI and animation updates).
+
+### Build 9 — clearer table and compact controls
+Compact bottom actions with the current claim over the felt; covered hands no longer reserve an empty panel. Dice bids use quantity steppers and selectable faces with legal-raise guidance. All seats share the same smaller leather cup. Removed intersecting tabletop bottles, separated the local drink from the revolver, and laid opponents guns on their sides.
