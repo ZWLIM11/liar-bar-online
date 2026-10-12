@@ -1,5 +1,5 @@
 import * as T from './vendor/three.module.min.js';
-import {cartoonPerson,cartoonHand,cartoonRevolver} from './cartoon-models.js';
+import {cartoonPerson,cartoonHand,cartoonRevolver,templeAim} from './cartoon-models.js?v=10';
 import {shotPose,sceneEvents} from './scene-events.js';
 const host=document.getElementById('sceneHost');
 try { init(); } catch(error) { host.classList.add('scene-fallback');document.getElementById('viewHint').textContent='3D unavailable: enable hardware acceleration and reload.';console.warn('3D renderer unavailable:',error.message); }
@@ -32,6 +32,12 @@ function init(){
  const night=new T.MeshStandardMaterial({color:'#203747',emissive:'#1c3041',emissiveIntensity:.3,roughness:.25});
  for(const x of [-9.8,9.8])for(const z of [-4,3]){let window=box(.08,2,1.6,night,x,3,z);box(.14,2.2,.09,trim,x,3,z-.84);box(.14,2.2,.09,trim,x,3,z+.84);box(.14,.1,1.7,trim,x,2,z);box(.14,.1,1.7,trim,x,4,z);box(.16,2,.06,trim,x,3,z);box(.16,.08,1.7,trim,x,3,z);}
  for(const x of [-6,6]){cyl(1.2,1.15,.14,wood,x,.9,3.7);cyl(.15,.35,.85,wood,x,.4,3.7);for(const dx of [-1.4,1.4]){box(.65,.12,.65,wood,x+dx,.5,3.7);box(.65,.9,.09,wood,x+dx,1,4);}}
+ const patrons=[];
+ for(const [i,x,z,angle] of [[0,-6,4.8,0],[1,6,4.8,0],[2,-3,-7.5,Math.PI]]){const npc=cartoonPerson(i);npc.position.set(x,0,z);npc.rotation.y=angle;npc.traverse(o=>{if(o.isMesh)o.castShadow=false});scene.add(npc);patrons.push(npc)}
+ // Framed wall art, brass clock, barrels, and warm hanging lamps.
+ for(const x of [-6.5,6.5]){box(1.8,1.3,.13,trim,x,3.5,-8.7);box(1.57,1.07,.15,mat('#26383b'),x,3.5,-8.6);const moon=mesh(new T.CircleGeometry(.21,32),mat('#d9b577'),x+.35,3.7,-8.50);for(let j=0;j<3;j++){const mountain=mesh(new T.ConeGeometry(.38,.7,3),mat(j%2?'#6a6753':'#444b48'),x-.5+j*.45,3.25,-8.48);mountain.rotation.y=Math.PI/2;}}
+ for(const x of [-8,8]){cyl(.48,.48,.85,wood,x,.43,-5);for(const y of [.13,.72]){const hoop=mesh(new T.TorusGeometry(.485,.024,8,32),dark,x,y,-5);hoop.rotation.x=Math.PI/2}cyl(.53,.08,.23,brass,x,3.35,-4);const glow=new T.PointLight('#ffbd75',10,5);glow.position.set(x,3.1,-4);scene.add(glow)}
+ const clockFace=mesh(new T.CircleGeometry(.45,40),ivory,0,3.95,8.78);clockFace.rotation.y=Math.PI;const clockRim=mesh(new T.TorusGeometry(.46,.035,8,40),brass,0,3.95,8.76);box(.025,.3,.03,dark,0,4.05,8.73);const clockHand=box(.22,.025,.03,dark,.09,3.95,8.73);clockHand.rotation.z=.5;
  let playerGroups=[],guns=[],dice=[],cards=[];
  function gun(parent,x,y,z){const g=cartoonRevolver();g.position.set(x,y,z);parent.add(g);return g}
  function hand(parent,x,y,z,rotation=0){const h=cartoonHand(parent,x,y,z);h.rotation.z=rotation;return h}
@@ -40,7 +46,7 @@ function init(){
  function diceMat(face){let c=document.createElement('canvas');c.width=c.height=128;let x=c.getContext('2d');x.fillStyle='#ead8af';x.fillRect(0,0,128,128);x.strokeStyle='#bca078';x.lineWidth=8;x.strokeRect(3,3,122,122);const spots={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};x.fillStyle='#2a180f';for(let [a,b]of spots[face]){x.beginPath();x.arc(64+a*31,64+b*31,10,0,Math.PI*2);x.fill()}let t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return new T.MeshStandardMaterial({map:t,roughness:.35})}
  const dm=[1,2,3,4,5,6].map(diceMat);
  for(let i=0;i<5;i++){let d=box(.2,.2,.2,[dm[0],dm[5],dm[i],dm[6-i-1],dm[1],dm[4]],(i-2)*.26,1.17,1.78);dice.push(d)}
- const cardBack=mat('#852d23');for(let i=0;i<5;i++){let c=box(.34,.014,.5,cardBack,(i-2)*.28,1.08,1.68);c.rotation.y=(i-2)*.08;cards.push(c)}
+ const backCanvas=document.createElement('canvas');backCanvas.width=256;backCanvas.height=384;const back=backCanvas.getContext('2d');back.fillStyle='#491c2b';back.fillRect(0,0,256,384);back.strokeStyle='#b98c52';back.lineWidth=3;for(let y=0;y<400;y+=24)for(let x=0;x<280;x+=24){back.beginPath();back.moveTo(x,y-10);back.lineTo(x+10,y);back.lineTo(x,y+10);back.lineTo(x-10,y);back.closePath();back.stroke()}back.fillStyle='#491c2b';back.fillRect(42,125,172,134);back.lineWidth=6;back.strokeRect(12,12,232,360);back.strokeRect(23,23,210,338);back.textAlign='center';back.fillStyle='#e3be78';back.font='bold 63px Georgia';back.fillText('◆',128,205);back.font='19px Georgia';back.fillText('LIAR’S TABLE',128,237);const backMap=new T.CanvasTexture(backCanvas);backMap.colorSpace=T.SRGBColorSpace;const cardBack=new T.MeshStandardMaterial({map:backMap,roughness:.8});for(let i=0;i<5;i++){let c=box(.34,.014,.5,cardBack,(i-2)*.28,1.08,1.68);c.rotation.y=(i-2)*.08;cards.push(c)}
  const personal=new T.Group();scene.add(personal);[...dice,...cards].forEach(m=>personal.attach(m));const ownGun=gun(scene,0,0,0);ownGun.visible=true;ownGun.scale.setScalar(.9);const fill=new T.PointLight('#b6c6e0',1.5,3);fill.position.set(-.3,.3,-.2);camera.add(fill);
 
  // The player's leather cup actually covers a compact group of five dice.
@@ -76,14 +82,14 @@ function init(){
   }
  }
  window.addEventListener('table-reset',()=>{clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileCount=0;pileReveal=null});
- let privateOpen=false,peekAmount=0,tableMode='dice',roundStart=0,sceneRound=null,handSize=5;
+ let selectedCards=[];let privateOpen=false,peekAmount=0,tableMode='dice',roundStart=0,sceneRound=null,handSize=5;
  window.addEventListener('hand-peek',e=>privateOpen=e.detail.open);
  const raycaster=new T.Raycaster(),pointer=new T.Vector2();let tapStart=null;
  renderer.domElement.addEventListener('pointerdown',e=>tapStart=[e.clientX,e.clientY]);
  renderer.domElement.addEventListener('pointerup',e=>{if(!tapStart||Math.hypot(e.clientX-tapStart[0],e.clientY-tapStart[1])>8)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const targets=tableMode==='dice'?[cup,...dice]:cards.filter(c=>c.visible);if(raycaster.intersectObjects(targets,true).length)window.dispatchEvent(new CustomEvent('request-peek'));else if(raycaster.intersectObject(poisonGlass,true).length){document.getElementById('sceneEvent').textContent=tableMode==='dice'?'Poison glass · two drinks eliminate you':'Your glass';}});
  const hands=new T.Group();scene.add(hands);for(const side of [-1,1]){let sleeve=mesh(new T.CapsuleGeometry(.085,.46,5,16),mat('#49352a'),side*.47,1.16,2.78,hands);sleeve.rotation.x=Math.PI/2;hand(hands,side*.47,1.21,2.45)}
  const gripHand=hand(ownGun,0,-.16,.16);gripHand.rotation.x=1.1;gripHand.rotation.z=1.4;
- let yaw=0,pitch=-.16,zoom=65,view='seat',drag=null,time=0,currentSeat=0,playerCount=4,effect=null,prev=null,mutedMotion=false;
+ let lastFrame=0,lookYaw=0,lookPitch=-.16,lookZoom=65;let yaw=0,pitch=-.16,zoom=65,view='seat',drag=null,time=0,currentSeat=0,playerCount=4,effect=null,prev=null,mutedMotion=false;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;mutedMotion=reduced;
  let flashLight=new T.PointLight('#ffc16b',0,5);scene.add(flashLight);
  const smokeCanvas=document.createElement('canvas');smokeCanvas.width=smokeCanvas.height=128;const smokeCtx=smokeCanvas.getContext('2d');const gradient=smokeCtx.createRadialGradient(64,64,2,64,64,64);gradient.addColorStop(0,'rgba(180,168,148,.35)');gradient.addColorStop(.35,'rgba(150,142,132,.2)');gradient.addColorStop(1,'rgba(130,124,117,0)');smokeCtx.fillStyle=gradient;smokeCtx.fillRect(0,0,128,128);const smokeMap=new T.CanvasTexture(smokeCanvas);const smoke=[];for(let i=0;i<9;i++){let p=new T.Sprite(new T.SpriteMaterial({map:smokeMap,transparent:true,opacity:0,depthWrite:false}));scene.add(p);smoke.push(p)}
@@ -105,37 +111,38 @@ function init(){
  window.addEventListener('table-reset',()=>{prev=null;sceneRound=null;privateOpen=false;effect=null;effectQueue.length=0;document.body.classList.remove('is-cinematic')});
  window.addEventListener('table-state',e=>{let g=e.detail.game;currentSeat=e.detail.seat||0;if(!g)return;playerCount=g.players.length;tableMode=g.mode;syncPile(g);if(sceneRound!==g.round||prev?.mode!==g.mode){sceneRound=g.round;roundStart=performance.now();privateOpen=false;peekAmount=0;}
   playerGroups.forEach((p,i)=>{p.visible=i<g.players.length&&(view!=='seat'||i!==currentSeat);p.userData.alive=g.players[i]?.alive!==false});
-  let mine=g.players[currentSeat];handSize=g.mode==='poker'?2:(mine?.hand?.length||0);cup.visible=g.mode==='dice';seatCups.forEach((c,i)=>c.visible=g.mode==='dice'&&i!==currentSeat&&i<g.players.length&&g.players[i].alive);poisonGlass.visible=g.mode==='dice';poisonLiquid.scale.y=Math.max(.02,1-(mine?.poison||0)/2);poisonLiquid.position.y=.015+.1*poisonLiquid.scale.y;
+  selectedCards=g.selected||[];let mine=g.players[currentSeat];handSize=g.mode==='poker'?2:(mine?.hand?.length||0);cup.visible=g.mode==='dice';seatCups.forEach((c,i)=>c.visible=g.mode==='dice'&&i!==currentSeat&&i<g.players.length&&g.players[i].alive);poisonGlass.visible=g.mode==='dice';poisonLiquid.scale.y=Math.max(.02,1-(mine?.poison||0)/2);poisonLiquid.position.y=.015+.1*poisonLiquid.scale.y;
   for(let i=0;i<5;i++){dice[i].visible=g.mode==='dice';dice[i].scale.setScalar(.45);if(mine?.dice?.[i])dice[i].material[2]=dm[mine.dice[i]-1];cards[i].visible=['deck','poker'].includes(g.mode)&&i<handSize;if(cards[i].visible){let label=g.mode==='poker'?mine.cards[i]?.label:mine.hand[i];cards[i].material=[cardBack,cardBack,cardFace(String(label||'')),cardBack,cardBack,cardBack];}}
 
   if(prev){for(const event of sceneEvents(g,prev))fire(event.kind,event.who)}else fire(g.mode==='dice'?'roll':'card',currentSeat);prev={round:g.round,mode:g.mode,log:[...g.log]};
 
  });
- function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;time=now*.001;const a=currentSeat*Math.PI/2;
+ function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;const delta=Math.min(.05,(now-(lastFrame||now-16.67))/1000);lastFrame=now;const blend=1-Math.exp(-12*delta);lookYaw+=(yaw-lookYaw)*blend;lookPitch+=(pitch-lookPitch)*blend;lookZoom+=(zoom-lookZoom)*blend;time=now*.001;const a=currentSeat*Math.PI/2;
+  patrons.forEach((p,i)=>{if(mutedMotion)return;p.userData.head.rotation.y=Math.sin(time*.35+i*2)*.16;p.userData.head.rotation.x=Math.sin(time*.5+i)*.035;});
   playedCards.forEach(c=>{const u=c.userData,t=mutedMotion?1:Math.max(0,Math.min(1,(now-u.start)/650*(window.animationRate||1)));c.position.copy(u.from).lerp(u.to,1-(1-t)**3);c.position.y+=Math.sin(t*Math.PI)*.35;c.rotation.set(0,u.spin+(1-t)*1.4,0)});
   revealedCards.forEach(c=>{const t=mutedMotion?1:Math.max(0,Math.min(1,(now-c.userData.start)/650));c.rotation.x=Math.PI*(1-t);c.visible=now-c.userData.start<8500;});
   hands.rotation.y=a;personal.rotation.y=a;if(ownGun.parent!==personal)personal.add(ownGun);ownGun.visible=true;ownGun.position.set(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);ownGun.rotation.set(0,-.55,Math.PI/2);ownGun.scale.setScalar(.9);ownGun.userData.flash.visible=false;ownGun.userData.hammer.rotation.x=-.4;gripHand.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view==='overview');const blink=!mutedMotion&&Math.sin(time*.68+i*1.7)>.997;p.userData.eyes.scale.y=blink?.12:1;const reaction=effect?.who===i?effect:null;const elapsed=reaction?(now-reaction.start)/1000*reaction.rate:0;const waitingShot=reaction&&(reaction.kind==='shot'||reaction.kind==='click')&&elapsed<1.65;const dead=p.userData.alive===false&&!waitingShot;const targetLean=dead?.28:0;p.rotation.z+=(targetLean-p.rotation.z)*.055;p.position.y+=((dead?-.4:0)-p.position.y)*.055;const head=p.userData.head;if(head){head.rotation.y=mutedMotion?0:Math.sin(time*.7+i*2)*.07;head.rotation.x=dead?.25:waitingShot?-.09+Math.sin(time*9)*.013:reaction?.kind==='click'&&elapsed>1.65?Math.sin((elapsed-1.65)*4)*.10:0;head.rotation.z=dead?.13:0}});
-  if(view==='seat'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(yaw+a)*6,5+pitch*2,Math.cos(yaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
+  if(view==='seat'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(lookPitch,lookYaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(lookYaw+a)*6,5+lookPitch*2,Math.cos(lookYaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
 
-  const dealTime=(now-roundStart)/1000*(window.animationRate||1);peekAmount+=(Number(privateOpen)-peekAmount)*(mutedMotion?1:.14);
+  const dealTime=(now-roundStart)/1000*(window.animationRate||1);peekAmount+=(Number(privateOpen)-peekAmount)*(mutedMotion?1:blend);
   const rolling=tableMode==='dice'&&dealTime<1.5;poisonGlass.position.set(-.76,1.055,1.75);poisonGlass.rotation.z=0;
   cup.position.set(rolling&&!mutedMotion?Math.sin(dealTime*35)*.035:0,1.05+peekAmount*.38,1.4-peekAmount*.18);cup.rotation.z=rolling&&!mutedMotion?Math.sin(dealTime*30)*.1:peekAmount*-.24;
   dice.forEach((d,i)=>{d.position.set((i%3-1)*.11,1.095,1.36+Math.floor(i/3)*.11);d.visible=tableMode==='dice'&&(privateOpen||peekAmount>.15);d.rotation.set(0,0,0);if(rolling&&!mutedMotion){d.position.y+=Math.abs(Math.sin(dealTime*17+i))*.12;d.rotation.set(dealTime*12+i,dealTime*9,dealTime*15)}});
-  cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;c.position.set((i-(handSize-1)/2)*.24*ease,1.08+Math.sin(t*Math.PI)*.25,1.12+ease*.53);c.rotation.set(Math.PI*(1-peekAmount), (i-(handSize-1)/2)*.08,0);});
-  camera.fov=zoom;camera.updateProjectionMatrix();flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,-.35,Math.PI/2);g.position.set(.63,1.14,-.85)});smoke.forEach(s=>s.material.opacity=0);
+  cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;const slot=i-(handSize-1)/2;const target=new T.Vector3(slot*.40*ease,1.08+Math.sin(t*Math.PI)*.18+(selectedCards.includes(i)?.075:0),1.05+ease*.38+Math.abs(slot)*.025);c.position.lerp(target,mutedMotion?1:blend);c.rotation.set(Math.PI*(1-peekAmount),slot*.045,0);});
+  camera.fov=lookZoom;camera.updateProjectionMatrix();flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,-.35,Math.PI/2);g.position.set(.63,1.14,-.85)});smoke.forEach(s=>s.material.opacity=0);
   if(effect){let dt=(now-effect.start)/1000*effect.rate;if(dt>3.5){effect=null;document.body.classList.remove('is-cinematic');document.getElementById('sceneEvent').textContent='';if(effectQueue.length){let next=effectQueue.shift();fire(next.kind,next.who)}}else{
    const firstPerson=effect.who===currentSeat&&view==='seat',gun=firstPerson?ownGun:guns[effect.who];
    if(effect.kind==='drink'&&effect.who===currentSeat&&!mutedMotion){const lift=Math.sin(Math.min(1,dt/2)*Math.PI);poisonGlass.position.set(-.76+lift*.3,1.055+lift*.55,1.75+lift*.55);poisonGlass.rotation.z=-lift*.5;}
    if(effect.kind==='shot'||effect.kind==='click'){
     const pose=shotPose(dt);if(effect.kind==='click'){pose.recoil=0;pose.settle=0;}gun.userData.cylinder.rotation.z=pose.cock*Math.PI/3;gun.userData.hammer.rotation.x=-.4-pose.cock*.6;
-    gun.position.set(.63-pose.lift*.31,1.07+pose.lift*.72,-.85+pose.lift*.55);gun.rotation.set(-pose.lift*.1,-pose.lift*1.4,pose.recoil*.3);
+    const opponentRest=new T.Vector3(.63,1.14,-.85),opponentAim=new T.Vector3(.72,1.9,-.08);gun.position.copy(opponentRest).lerp(opponentAim,pose.lift);const towardTemple=new T.Vector3(.20,1.9,-.05).sub(opponentAim).normalize();gun.quaternion.setFromEuler(new T.Euler(0,-.35,Math.PI/2)).slerp(templeAim(opponentAim,new T.Vector3(.20,1.9,-.05)),pose.lift);
     if(firstPerson){
      const restPosition=new T.Vector3(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);
      camera.updateMatrixWorld();personal.updateMatrixWorld();
-     const aim=camera.localToWorld(new T.Vector3(.27,-.12+pose.breath,-.54+pose.recoil*.065));personal.worldToLocal(aim);
+     const aim=camera.localToWorld(new T.Vector3(.62+pose.recoil*.025,-.045+pose.breath,-.28));personal.worldToLocal(aim);
      ownGun.position.copy(restPosition).lerp(aim,pose.lift);ownGun.scale.setScalar(.9-.2*pose.lift);
      const restRotation=new T.Quaternion().setFromEuler(new T.Euler(0,-.55,Math.PI/2));
-     const aimRotation=camera.quaternion.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(.08+pose.recoil*.22+pose.settle*.025,-.7,-.24)));
+     const aimRotation=camera.quaternion.clone().multiply(templeAim(new T.Vector3(.62,-.045,-.28),new T.Vector3(.13,0,0)));
      const localAim=personal.getWorldQuaternion(new T.Quaternion()).invert().multiply(aimRotation);
      ownGun.quaternion.copy(restRotation).slerp(localAim,pose.lift);gripHand.visible=pose.lift>.12;hands.visible=pose.lift<.2;
     }

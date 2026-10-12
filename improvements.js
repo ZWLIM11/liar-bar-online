@@ -19,7 +19,7 @@ window.addEventListener('table-reset',()=>{noticeSerial=null;noticeQueue=[];clea
 window.addEventListener('table-state',()=>{
  if(!game)return;
  const serial=game.logSerial||0;
- if(noticeSerial!==null&&serial>noticeSerial){const fresh=game.log.slice(0,Math.min(serial-noticeSerial,game.log.length)).reverse();if(fresh.some(x=>/called Liar|challenged/i.test(x))){noticeQueue=[];clearTimeout(noticeTimer);actionNotice.hidden=true;}noticeQueue.push(...fresh);noticeQueue=noticeQueue.slice(-8);if(actionNotice.hidden)nextNotice();}
+ if(noticeSerial!==null&&serial>noticeSerial){const fresh=game.log.slice(0,Math.min(serial-noticeSerial,game.log.length)).reverse();if(fresh.some(x=>/called Liar|challenged/i.test(x))){window.callLiarAudio?.();noticeQueue=[];clearTimeout(noticeTimer);actionNotice.hidden=true;}noticeQueue.push(...fresh);noticeQueue=noticeQueue.slice(-8);if(actionNotice.hidden)nextNotice();}
  noticeSerial=serial;
  document.querySelectorAll('#playerRow .player').forEach((node,i)=>{
   const p=game.players[i];if(!['deck','poker'].includes(game.mode))return;
@@ -54,3 +54,5 @@ window.addEventListener('table-state',()=>{
  for(let i=1;i<=6;i++){const b=document.createElement('button');b.type='button';b.textContent=faces[i-1];b.setAttribute('aria-label','Bid face '+i);b.onclick=()=>{face.value=String(i);refresh()};picker.append(b)}
  minus.onclick=()=>{qty.value=String(Math.max(bid?.qty||1,Number(qty.value)-1));refresh()};plus.onclick=()=>{qty.value=String(Math.min(max,Number(qty.value)+1));refresh()};qty.oninput=refresh;refresh();
 });
+
+const originalSoundToggle=$('soundButton').onclick;$('soundButton').onclick=()=>{originalSoundToggle();if(!sound)window.speechSynthesis?.cancel()};

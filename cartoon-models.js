@@ -19,11 +19,14 @@ export function cartoonPerson(index){const g=new T.Group(),palette=[['#395766','
  for(let y=1.02;y<1.42;y+=.11)oval(g,gold,0,y,-.224,.015,.015,.012);
  const head=new T.Group();head.position.set(0,1.61,0);g.add(head);g.updateMatrixWorld(true);for(const child of [...g.children])if(child!==head&&child.position.y>1.62)head.attach(child);g.userData.head=head;g.userData.eyes=eyes;g.userData.alive=true;return g;
 }
-export function cartoonRevolver(){const g=new T.Group(),steel=material('#73818b',.32,.48),silver=material('#b3c1c7',.23,.6),dark=material('#27313a',.5,.25),grip=material('#804833'),gold=material('#d6ab60',.3,.45);
+export function cartoonRevolver(){const g=new T.Group(),steel=material('#324550',.3,.65),silver=material('#b3c1c7',.23,.6),dark=material('#27313a',.5,.25),grip=material('#512f28'),gold=material('#d6ab60',.3,.45);
  const barrel=part(g,new T.CylinderGeometry(.044,.046,.46,40),steel,0,.04,-.255);barrel.rotation.x=Math.PI/2;const rim=part(g,new T.TorusGeometry(.034,.009,10,32),silver,0,.04,-.49);part(g,new T.CircleGeometry(.026,32),dark,0,.04,-.491).rotation.y=Math.PI;rim.rotation.y=Math.PI;
  rounded(g,silver,0,.086,-.245,.064,.023,.40,.01);rounded(g,dark,0,.119,-.439,.019,.035,.035,.008);
  rounded(g,steel,0,.008,.055,.153,.163,.23,.035);const cylinder=new T.Group();cylinder.position.set(0,.015,.025);g.add(cylinder);part(cylinder,new T.CylinderGeometry(.093,.093,.17,48),silver).rotation.x=Math.PI/2;
  for(let i=0;i<6;i++){const a=i*Math.PI/3;part(cylinder,new T.CylinderGeometry(.013,.013,.16,20),dark,Math.sin(a)*.084,Math.cos(a)*.084,0).rotation.x=Math.PI/2;oval(cylinder,gold,Math.sin(a)*.059,Math.cos(a)*.059,.086,.015,.015,.006)}
  rounded(g,steel,0,.117,.042,.10,.04,.265,.015);const handle=rounded(g,grip,0,-.173,.15,.115,.25,.105,.04);handle.rotation.x=-.25;for(const side of [-1,1]){oval(g,gold,side*.058,-.18,.145,.006,.018,.018);rounded(g,dark,side*.059,-.11,.147,.006,.07,.064,.002)}
+ for(const side of [-1,1]){for(let j=0;j<5;j++){const inlay=rounded(g,gold,side*.063,-.22+j*.023,.16,.005,.005,.07,.001);inlay.rotation.x=-.25;}for(let j=0;j<3;j++){const engraving=part(g,new T.TorusGeometry(.023+j*.006,.0025,6,24),gold,side*.081,.028,.065);engraving.rotation.y=Math.PI/2;}}
  const guard=part(g,new T.TorusGeometry(.062,.011,12,40),gold,0,-.115,-.006);guard.rotation.y=Math.PI/2;guard.scale.y=1.13;const trigger=rounded(g,silver,0,-.084,.005,.016,.059,.018,.007);trigger.rotation.x=.25;const hammer=rounded(g,dark,0,.147,.17,.026,.064,.054,.012);hammer.rotation.x=-.4;
  const flash=new T.Group();flash.position.set(0,.04,-.52);g.add(flash);const flame=part(flash,new T.ConeGeometry(.08,.28,12),new T.MeshBasicMaterial({color:'#ffc36c',transparent:true,opacity:.85,blending:T.AdditiveBlending,depthWrite:false}),0,0,-.10);flame.rotation.x=-Math.PI/2;oval(flash,new T.MeshBasicMaterial({color:'#fffce0'}),0,0,0,.05,.05,.10);flash.visible=false;g.userData={flash,cylinder,hammer};return g}
+
+export function templeAim(origin,target){return new T.Quaternion().setFromUnitVectors(new T.Vector3(0,0,-1),target.clone().sub(origin).normalize())}

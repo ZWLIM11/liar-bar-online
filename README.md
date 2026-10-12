@@ -82,3 +82,6 @@ Played Deck cards now fly into a persistent face-down 3D pile. Challenges flip t
 
 ### Build 9 — clearer table and compact controls
 Compact bottom actions with the current claim over the felt; covered hands no longer reserve an empty panel. Dice bids use quantity steppers and selectable faces with legal-raise guidance. All seats share the same smaller leather cup. Removed intersecting tabletop bottles, separated the local drink from the revolver, and laid opponents guns on their sides.
+
+### Build 10 — smoother saloon presentation
+Spaced 3D and HUD cards with eased selection and camera movement, original patterned card backs, blued steel and gold-inlay revolvers. Gun poses aim toward the temple rather than fixed angles. Liar challenges have a synthesized sting and spoken call where browser speech is available, respecting mute. Added three gently animated background patrons, wall art, lamps, barrels and a clock.
