@@ -1,11 +1,11 @@
 import * as T from './vendor/three.module.min.js';
-import {cartoonPerson,cartoonHand,cartoonRevolver,templeAim} from './cartoon-models.js?v=14';
+import {cartoonPerson,cartoonHand,cartoonRevolver,templeAim} from './cartoon-models.js?v=15';
 import {shotPose,sceneEvents,deathPose} from './scene-events.js?v=11';
 const host=document.getElementById('sceneHost');
 try { init(); } catch(error) { host.classList.add('scene-fallback');document.getElementById('viewHint').textContent='3D unavailable: enable hardware acceleration and reload.';console.warn('3D renderer unavailable:',error.message); }
 function init(){
  const scene=new T.Scene();scene.background=new T.Color('#0b0c13');scene.fog=new T.FogExp2('#11121b',.041);
- const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.88;host.appendChild(renderer.domElement);
+ const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1));renderer.shadowMap.enabled=false;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.88;host.appendChild(renderer.domElement);
  const camera=new T.PerspectiveCamera(65,1,.05,70);scene.add(camera);
  const mat=(color,roughness=.7,metalness=0)=>new T.MeshStandardMaterial({color,roughness,metalness});
  const wood=mat('#4c2815'),trim=mat('#9c6231',.45),felt=mat('#183f34'),brass=mat('#bb9148',.3,.7),dark=mat('#171316',.38,.45),skin=mat('#b07955'),ivory=mat('#eddfbd');
@@ -23,7 +23,7 @@ function init(){
  cyl(2.95,2.8,.23,wood,0,.9,0);cyl(2.7,2.7,.025,felt,0,1.03,0);cyl(.48,.75,.85,wood,0,.4,0);
  const rim=mesh(new T.TorusGeometry(2.77,.045,12,90),brass,0,1.04,0);rim.rotation.x=Math.PI/2;
  const lamp=cyl(.17,.25,.4,brass,0,1.25,0);sphere(.13,new T.MeshStandardMaterial({color:'#ffb345',emissive:'#ff8219',emissiveIntensity:3}),0,1.58,0);
- const light=new T.PointLight('#ffd4a0',30,10,2);light.position.set(0,2.5,.1);light.castShadow=true;light.shadow.mapSize.set(1024,1024);scene.add(light);scene.add(new T.HemisphereLight('#9bacc8','#28151d',1.5));
+ const light=new T.PointLight('#ffd4a0',30,10,2);light.position.set(0,2.5,.1);light.castShadow=true;light.shadow.mapSize.set(512,512);scene.add(light);scene.add(new T.HemisphereLight('#9bacc8','#28151d',1.5));
  for(const x of [-5,5]){let l=new T.PointLight('#ffab69',42,13);l.position.set(x,3,-6);scene.add(l);cyl(.6,.1,.25,brass,x,3.5,-6)}
 
  // Ceiling beams, windows and secondary tables give free-look a complete room.
@@ -95,12 +95,14 @@ function init(){
  const hands=new T.Group();scene.add(hands);for(const side of [-1,1]){let sleeve=mesh(new T.CapsuleGeometry(.085,.46,5,16),mat('#49352a'),side*.47,1.16,2.78,hands);sleeve.rotation.x=Math.PI/2;hand(hands,side*.47,1.21,2.45)}
  const gripHand=hand(ownGun,0,-.16,.16);gripHand.rotation.x=1.1;gripHand.rotation.z=1.4;
  let lastFrame=0,lookYaw=0,lookPitch=-.16,lookZoom=65;let yaw=0,pitch=-.16,zoom=65,view='seat',drag=null,time=0,currentSeat=0,playerCount=4,effect=null,prev=null,mutedMotion=false;
- renderer.setPixelRatio(Math.min(devicePixelRatio,window.playerPrefs?.quality==='low'?1:1.6));renderer.shadowMap.enabled=window.playerPrefs?.quality!=='low';
+ let renderScale=1,frameSamples=0,frameTotal=0,lastMeasure=0,lastShadow=0;let viewportWidth=1,viewportHeight=1;
+ function applyQuality(){const quality=window.playerPrefs?.quality||'auto';renderScale=quality==='high'?1.35:quality==='low'?.8:1;renderer.setPixelRatio(Math.min(devicePixelRatio,renderScale));renderer.shadowMap.enabled=quality==='high';renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;frameSamples=0;frameTotal=0;lastMeasure=0;document.body.classList.toggle('performance-mode',quality!=='high')}
+ applyQuality();
  const reduced=window.playerPrefs?.gentle||matchMedia('(prefers-reduced-motion: reduce)').matches;mutedMotion=reduced;
  let flashLight=new T.PointLight('#ffc16b',0,5);scene.add(flashLight);
  const smokeCanvas=document.createElement('canvas');smokeCanvas.width=smokeCanvas.height=128;const smokeCtx=smokeCanvas.getContext('2d');const gradient=smokeCtx.createRadialGradient(64,64,2,64,64,64);gradient.addColorStop(0,'rgba(180,168,148,.35)');gradient.addColorStop(.35,'rgba(150,142,132,.2)');gradient.addColorStop(1,'rgba(130,124,117,0)');smokeCtx.fillStyle=gradient;smokeCtx.fillRect(0,0,128,128);const smokeMap=new T.CanvasTexture(smokeCanvas);const smoke=[];for(let i=0;i<9;i++){let p=new T.Sprite(new T.SpriteMaterial({map:smokeMap,transparent:true,opacity:0,depthWrite:false}));scene.add(p);smoke.push(p)}
 
- function resize(){const {width,height}=host.getBoundingClientRect();if(!width||!height)return;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(host);
+ function resize(){const {width,height}=host.getBoundingClientRect();if(!width||!height)return;viewportWidth=width;viewportHeight=height;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(host);
  renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('aria-label','3D saloon. Drag to look; arrow keys look around; R resets view.');
  renderer.domElement.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId)});
  renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-drag[0])*.004*(window.playerPrefs?.sensitivity||1);pitch=Math.max(-.8,Math.min(.5,pitch-(e.clientY-drag[1])*.003*(window.playerPrefs?.sensitivity||1)));drag=[e.clientX,e.clientY]});renderer.domElement.addEventListener('pointerup',()=>drag=null);renderer.domElement.addEventListener('pointercancel',()=>drag=null);
@@ -113,7 +115,7 @@ function init(){
  document.getElementById('fullView').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.getElementById('gameScreen').requestFullscreen?.()};
  const deathTimes=new Map(),bloodDrops=[];const bloodMaterial=mat('#651728',.38);const deathShade=document.createElement('div');deathShade.id='deathShade';deathShade.innerHTML='<div class="death-title">LAST BREATH<small>You are eliminated</small><button id="spectateDeath">Watch the table</button></div>';deathShade.hidden=true;host.append(deathShade);document.getElementById('spectateDeath').onclick=()=>{view='spectator';document.getElementById('cameraView').textContent='Table overview'};
  function bleed(who){if(window.playerPrefs?.blood===false)return;if(who===currentSeat)deathShade.classList.add('bloody');const a=who*Math.PI/2;for(let j=0;j<14;j++){const drop=sphere(.018+Math.random()*.018,bloodMaterial,Math.sin(a)*3.05,1.9,Math.cos(a)*3.05);drop.userData={start:performance.now(),origin:drop.position.clone(),velocity:new T.Vector3((Math.random()-.5)*1.5,Math.random()*.6,(Math.random()-.5)*1.5)};bloodDrops.push(drop)}}
- window.addEventListener('preferences-changed',()=>{mutedMotion=!!window.playerPrefs.gentle;renderer.setPixelRatio(Math.min(devicePixelRatio,window.playerPrefs.quality==='low'?1:1.6));renderer.shadowMap.enabled=window.playerPrefs.quality!=='low';});
+ window.addEventListener('preferences-changed',()=>{mutedMotion=!!window.playerPrefs.gentle;applyQuality();});
  const effectQueue=[];
  function fire(kind,who){if(effect&&(effect.kind==='shot'||effect.kind==='click')){if(kind==='shot'||kind==='click')effectQueue.push({kind,who});return}effect={kind,who,start:Math.max(performance.now(),window.evidenceUntil||0),sounded:false,rate:window.animationRate||1};if(kind==='shot'||kind==='click'){window.cinematicUntil=Math.max(performance.now(),window.evidenceUntil||0)+3500/(window.animationRate||1);document.body.classList.add('is-cinematic');}document.getElementById('sceneEvent').textContent=kind==='shot'||kind==='click'?'One deep breath…':kind==='drink'?'Poison taken':kind==='card'?'Cards on the table':'Dice rolled';if(kind!=='shot'&&kind!=='click')window.gameAudio?.(kind)}
  document.getElementById('rehearseShot').onclick=()=>fire('shot',currentSeat);
@@ -126,7 +128,8 @@ function init(){
   if(prev){const events=sceneEvents(g,prev);let delay=(window.evidenceUntil||0)>performance.now()?window.evidenceUntil-performance.now():effect&&(effect.kind==='shot'||effect.kind==='click')?Math.max(0,3500-(performance.now()-effect.start)*effect.rate)/effect.rate:0;for(const event of events){if(g.players[event.who]?.alive===false&&!deathTimes.has(event.who))deathTimes.set(event.who,performance.now()+delay+(event.kind==='shot'?1650:1100)/(window.animationRate||1));fire(event.kind,event.who);if(event.kind==='shot'||event.kind==='click')delay+=3500/(window.animationRate||1)}}else fire(g.mode==='dice'?'roll':'card',currentSeat);g.players.forEach((p,i)=>{if(!p.alive&&!deathTimes.has(i))deathTimes.set(i,performance.now()-(prev?0:2000));});prev={round:g.round,mode:g.mode,revealId:g.lastReveal?.id,log:[...g.log]};
 
  });
- function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game'))return;const delta=Math.min(.05,(now-(lastFrame||now-16.67))/1000);lastFrame=now;const blend=1-Math.exp(-12*delta);lookYaw+=(yaw-lookYaw)*blend;lookPitch+=(pitch-lookPitch)*blend;lookZoom+=(zoom-lookZoom)*blend;time=now*.001;const a=currentSeat*Math.PI/2;
+ const cardTarget=new T.Vector3(),markerPoint=new T.Vector3();let lastMarker=0;
+ function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game')){lastFrame=0;lastMeasure=0;return;}const delta=Math.min(.05,(now-(lastFrame||now-16.67))/1000);lastFrame=now;const blend=1-Math.exp(-12*delta);lookYaw+=(yaw-lookYaw)*blend;lookPitch+=(pitch-lookPitch)*blend;lookZoom+=(zoom-lookZoom)*blend;time=now*.001;const a=currentSeat*Math.PI/2;
   patrons.forEach((p,i)=>{if(mutedMotion)return;p.userData.head.rotation.y=Math.sin(time*.35+i*2)*.16;p.userData.head.rotation.x=Math.sin(time*.5+i)*.035;});
   playedCards.forEach(c=>{const u=c.userData,t=mutedMotion?1:Math.max(0,Math.min(1,(now-u.start)/650*(window.animationRate||1)));c.position.copy(u.from).lerp(u.to,1-(1-t)**3);c.position.y+=Math.sin(t*Math.PI)*.35;c.rotation.set(0,u.spin+(1-t)*1.4,0)});
   revealedCards.forEach(c=>{const t=mutedMotion?1:Math.max(0,Math.min(1,(now-c.userData.start)/650));c.rotation.x=Math.PI*(1-t);c.visible=now-c.userData.start<8500;});
@@ -137,8 +140,8 @@ function init(){
   const rolling=tableMode==='dice'&&dealTime<1.5;poisonGlass.position.set(-.76,1.055,1.75);poisonGlass.rotation.z=0;
   cup.position.set(rolling&&!mutedMotion?Math.sin(dealTime*35)*.035:0,1.05+peekAmount*.38,1.4-peekAmount*.18);cup.rotation.z=rolling&&!mutedMotion?Math.sin(dealTime*30)*.1:peekAmount*-.24;
   dice.forEach((d,i)=>{d.position.set((i%3-1)*.11,1.095,1.36+Math.floor(i/3)*.11);d.visible=tableMode==='dice'&&(privateOpen||peekAmount>.15);d.rotation.set(0,0,0);if(rolling&&!mutedMotion){d.position.y+=Math.abs(Math.sin(dealTime*17+i))*.12;d.rotation.set(dealTime*12+i,dealTime*9,dealTime*15)}});
-  cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;const slot=i-(handSize-1)/2;const target=new T.Vector3(slot*.40*ease,1.08+Math.sin(t*Math.PI)*.18+(selectedCards.includes(i)?.075:0),1.05+ease*.38+Math.abs(slot)*.025);c.position.lerp(target,mutedMotion?1:blend);c.rotation.set(Math.PI*(1-peekAmount),slot*.045,0);});
-  camera.fov=lookZoom;camera.updateProjectionMatrix();flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,-.35,Math.PI/2);g.position.set(.63,1.14,-.85)});smoke.forEach(s=>s.material.opacity=0);
+  cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;const slot=i-(handSize-1)/2;const target=cardTarget.set(slot*.40*ease,1.08+Math.sin(t*Math.PI)*.18+(selectedCards.includes(i)?.075:0),1.05+ease*.38+Math.abs(slot)*.025);c.position.lerp(target,mutedMotion?1:blend);c.rotation.set(Math.PI*(1-peekAmount),slot*.045,0);});
+  if(Math.abs(camera.fov-lookZoom)>.01){camera.fov=lookZoom;camera.updateProjectionMatrix();}flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,-.35,Math.PI/2);g.position.set(.63,1.14,-.85)});smoke.forEach(s=>s.material.opacity=0);
   if(effect){let dt=Math.max(0,(now-effect.start)/1000*effect.rate);if(dt>3.5){effect=null;document.body.classList.remove('is-cinematic');document.getElementById('sceneEvent').textContent='';if(effectQueue.length){let next=effectQueue.shift();fire(next.kind,next.who)}}else{
    const firstPerson=effect.who===currentSeat&&view==='seat',gun=firstPerson?ownGun:guns[effect.who];
    if(effect.kind==='drink'&&effect.who===currentSeat&&!mutedMotion){const lift=Math.sin(Math.min(1,dt/2)*Math.PI);poisonGlass.position.set(-.76+lift*.3,1.055+lift*.55,1.75+lift*.55);poisonGlass.rotation.z=-lift*.5;}
@@ -172,7 +175,10 @@ function init(){
   deathShade.hidden=!fallen;deathShade.classList.toggle('spectating',view==='overview');
   if(fallen&&view!=='seat'){hands.visible=false;ownGun.visible=false;}
   if(fallen&&view==='seat'){const pose=deathPose((now-ownDeath)/1000*(window.animationRate||1));if(!mutedMotion){camera.position.y-=pose.fall*1.12;camera.rotation.z=pose.roll*.6;camera.rotation.x+=pose.fall*.22;}hands.position.y=-pose.fall*.8;hands.rotation.z=pose.roll;ownGun.visible=false;gripHand.visible=false;}else{hands.position.y=0;hands.rotation.z=0;}
-  if(tableMode==='deck'&&!pileSign.hidden){camera.updateMatrixWorld();const point=new T.Vector3(.57,1.62,.40).project(camera);const bounds=host.getBoundingClientRect();pileSign.style.left=((point.x+1)*bounds.width/2)+'px';pileSign.style.top=((-point.y+1)*bounds.height/2)+'px';pileSign.style.visibility=point.z<1&&point.z>-1?'visible':'hidden';const pulse=mutedMotion?0:Math.max(0,1-(now-pilePulse)/950);pileHalo.scale.setScalar(1+pulse*.35);pileHalo.material.opacity=.45+pulse*.4;}
+  if(tableMode==='deck'&&!pileSign.hidden&&now-lastMarker>33){lastMarker=now;camera.updateMatrixWorld();const point=markerPoint.set(.57,1.62,.40).project(camera);pileSign.style.left=((point.x+1)*viewportWidth/2)+'px';pileSign.style.top=((-point.y+1)*viewportHeight/2)+'px';pileSign.style.visibility=point.z<1&&point.z>-1?'visible':'hidden';const pulse=mutedMotion?0:Math.max(0,1-(now-pilePulse)/950);pileHalo.scale.setScalar(1+pulse*.35);pileHalo.material.opacity=.45+pulse*.4;}
+  for(let i=bloodDrops.length-1;i>=0;i--)if(now-bloodDrops[i].userData.start>25000){scene.remove(bloodDrops[i]);bloodDrops[i].geometry.dispose();bloodDrops.splice(i,1)}
+  if(renderer.shadowMap.enabled&&now-lastShadow>100){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
+  if(lastMeasure){frameTotal+=now-lastMeasure;frameSamples++;if(frameSamples>=120){const average=frameTotal/frameSamples;window.renderPerformance={fps:Math.round(1000/average),scale:renderScale};if((window.playerPrefs?.quality||'auto')==='auto'&&average>24&&renderScale>.65){renderScale=Math.max(.65,renderScale-.15);renderer.setPixelRatio(Math.min(devicePixelRatio,renderScale));}frameSamples=0;frameTotal=0;}}lastMeasure=now;
   renderer.render(scene,camera);
  }resize();requestAnimationFrame(frame);document.getElementById('viewHint').textContent='Drag to look · scroll to zoom · arrow keys · R to reset';
 }

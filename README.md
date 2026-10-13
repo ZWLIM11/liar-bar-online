@@ -91,3 +91,6 @@ Impact-timed body collapses, blood particles for fatal gunshots, first-person fa
 
 ### Build 14 — match polish
 Persistent table-rank marker, table-slumped bodies and seated spectating, pip-based dice controls, victory results with server-derived Deck statistics, and device-local win records. Saved volume, motion, blood, graphics, sensitivity and cosmetic finish settings. Consistent illustrated portraits. Online status and turn countdown; challenge evidence precedes chamber presentation. Automated tests cover room lifecycle and hidden-state privacy; current browser visual validation remains unavailable.
+
+### Build 15 — rendering performance
+Character plus gun geometry reduced from 96,028 to 27,872 triangles. Auto graphics defaults to capped resolution without point-light shadows, lowers resolution after sustained slow frames, and avoids backdrop blur. High mode retains shadows at reduced resolution and update frequency. Cached marker dimensions, reused frame vectors, avoided redundant projection updates, and disposed expired blood geometry. Actual device FPS still requires browser validation.
