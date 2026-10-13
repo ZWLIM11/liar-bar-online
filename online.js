@@ -1,10 +1,11 @@
 let roomState=null, roomPoll=null, onlineBusy=false;
+let lastConnectionOK=0;
 const onlineNotice=text=>{$('onlineNotice').textContent=text};
 function savedSeat(){try{return JSON.parse(sessionStorage.getItem('liarSeat'))}catch{return null}}
 async function roomFetch(path,body,authenticated=true){
  const headers={'Content-Type':'application/json'};if(authenticated&&onlineSession)headers.Authorization='Bearer '+onlineSession.token;
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
- try{const res=await fetch(path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});const data=await res.json();if(!res.ok)throw Error(data.error||'Room request failed.');return data}finally{clearTimeout(timeout)}
+ try{const res=await fetch(path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});const data=await res.json();if(!res.ok)throw Error(data.error||'Room request failed.');lastConnectionOK=Date.now();return data}finally{clearTimeout(timeout)}
 }
 function roomPath(action=''){return '/api/rooms/'+onlineSession.code+(action?'/'+action:'')}
 function applyRoom(data){

@@ -88,3 +88,6 @@ Spaced 3D and HUD cards with eased selection and camera movement, original patte
 
 ### Build 11 — death sequences and dark saloon
 Impact-timed body collapses, blood particles for fatal gunshots, first-person fall and a spectate button. Poison eliminations collapse without gunshot blood. Chairs remain upright. Darker cool ambient lighting keeps the warm table readable. An anchored card-pile sign identifies the latest play and total count, with a landing pulse. Reduced-motion mode skips the first-person camera fall.
+
+### Build 14 — match polish
+Persistent table-rank marker, table-slumped bodies and seated spectating, pip-based dice controls, victory results with server-derived Deck statistics, and device-local win records. Saved volume, motion, blood, graphics, sensitivity and cosmetic finish settings. Consistent illustrated portraits. Online status and turn countdown; challenge evidence precedes chamber presentation. Automated tests cover room lifecycle and hidden-state privacy; current browser visual validation remains unavailable.
