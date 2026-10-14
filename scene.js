@@ -67,11 +67,11 @@ function init(){
  // Public table pile: geometry contains no private card ranks.
  const pileSign=document.createElement('div');pileSign.id='pileSign';pileSign.hidden=true;host.append(pileSign);let pilePulse=0;
  const pileHalo=mesh(new T.TorusGeometry(.42,.014,8,48),new T.MeshBasicMaterial({color:'#dcb276',transparent:true,opacity:.6}),.57,1.056,.40);pileHalo.rotation.x=Math.PI/2;pileHalo.visible=false;
- const playedCards=[], revealedCards=[];let pileRound=null,pileCount=0,pileReveal=null;
+ const playedCards=[], revealedCards=[];let pileRound=null,pileCount=0,pileReveal=null,revealUntil=0;
  function clearCards(list){for(const c of list){scene.remove(c);c.geometry.dispose()}list.length=0}
  function syncPile(g){
   pileSign.hidden=g.mode!=='deck';pileHalo.visible=g.mode==='deck';if(g.mode!=='deck'){clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileReveal=null;return}
-  if(pileRound!==g.round){clearCards(playedCards);pileRound=g.round;pileCount=0}
+  if(pileRound!==g.round){clearCards(revealedCards);clearCards(playedCards);pileRound=g.round;pileCount=0}
   let n=0;
   for(const play of g.tablePlays||[])for(let j=0;j<play.count;j++,n++){
    if(n<pileCount)continue;
@@ -81,11 +81,11 @@ function init(){
   pileSign.textContent=g.rank+'’S TABLE · '+(g.pending?g.players[g.pending.by].name+' played '+g.pending.cards.length+' · ':'')+n+' CARDS ↓';
   if(!n)pileSign.textContent=g.rank+'’S TABLE · PLAY HERE ↓';
   if(g.lastReveal?.title==='Card challenge'&&pileReveal!==g.lastReveal.id){
-   pileReveal=g.lastReveal.id;clearCards(revealedCards);
+   pileReveal=g.lastReveal.id;clearCards(revealedCards);revealUntil=performance.now()+2200;
    g.lastReveal.rows[0].values.forEach((v,i)=>{const c=box(.4,.016,.58,[cardBack,cardBack,cardFace(String(v)),cardBack,cardBack,cardBack],(i-1)*.45,1.1,.94);c.userData.start=performance.now()+i*120;revealedCards.push(c)});
   }
  }
- window.addEventListener('table-reset',()=>{clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileCount=0;pileReveal=null});
+ window.addEventListener('table-reset',()=>{clearCards(playedCards);clearCards(revealedCards);pileRound=null;pileCount=0;pileReveal=null;revealUntil=0;document.body.classList.remove('showing-evidence')});
  function applyFinish(){const skin=window.playerPrefs?.skin||'classic';cardBack.color.set(skin==='midnight'?'#a8bddc':skin==='jade'?'#83c5a5':'#ffffff');for(const gun of [...guns,ownGun]){gun.userData.finishSteel?.color.set(skin==='midnight'?'#9babb8':skin==='jade'?'#305c51':'#324550');gun.userData.finishGrip?.color.set(skin==='midnight'?'#252c40':skin==='jade'?'#244638':'#512f28')}}window.addEventListener('preferences-changed',applyFinish);applyFinish();
  let selectedCards=[];let privateOpen=false,peekAmount=0,tableMode='dice',roundStart=0,sceneRound=null,handSize=5;
  window.addEventListener('hand-peek',e=>privateOpen=e.detail.open);
@@ -132,7 +132,7 @@ function init(){
  function frame(now){requestAnimationFrame(frame);if(document.hidden||!document.body.classList.contains('in-game')){lastFrame=0;lastMeasure=0;return;}const delta=Math.min(.05,(now-(lastFrame||now-16.67))/1000);lastFrame=now;const blend=1-Math.exp(-12*delta);lookYaw+=(yaw-lookYaw)*blend;lookPitch+=(pitch-lookPitch)*blend;lookZoom+=(zoom-lookZoom)*blend;time=now*.001;const a=currentSeat*Math.PI/2;
   patrons.forEach((p,i)=>{if(mutedMotion)return;p.userData.head.rotation.y=Math.sin(time*.35+i*2)*.16;p.userData.head.rotation.x=Math.sin(time*.5+i)*.035;});
   playedCards.forEach(c=>{const u=c.userData,t=mutedMotion?1:Math.max(0,Math.min(1,(now-u.start)/650*(window.animationRate||1)));c.position.copy(u.from).lerp(u.to,1-(1-t)**3);c.position.y+=Math.sin(t*Math.PI)*.35;c.rotation.set(0,u.spin+(1-t)*1.4,0)});
-  revealedCards.forEach(c=>{const t=mutedMotion?1:Math.max(0,Math.min(1,(now-c.userData.start)/650));c.rotation.x=Math.PI*(1-t);c.visible=now-c.userData.start<8500;});
+  revealedCards.forEach(c=>{const t=mutedMotion?1:Math.max(0,Math.min(1,(now-c.userData.start)/650));c.rotation.x=Math.PI*(1-t);c.visible=now<revealUntil;});
   hands.rotation.y=a;personal.rotation.y=a;if(ownGun.parent!==personal)personal.add(ownGun);ownGun.visible=true;ownGun.position.set(camera.aspect<.8?.48:.88,1.16,camera.aspect<.8?.65:.9);ownGun.rotation.set(0,-.55,Math.PI/2);ownGun.scale.setScalar(.9);ownGun.userData.flash.visible=false;ownGun.userData.hammer.rotation.x=-.4;gripHand.visible=false;playerGroups.forEach((p,i)=>{p.visible=i<playerCount&&(i!==currentSeat||view!=='seat');const blink=!mutedMotion&&Math.sin(time*.68+i*1.7)>.997;p.userData.eyes.scale.y=blink?.12:1;const reaction=effect?.who===i?effect:null;const elapsed=reaction?(now-reaction.start)/1000*reaction.rate:0;const waitingShot=reaction&&(reaction.kind==='shot'||reaction.kind==='click')&&elapsed<1.65;const deathStart=deathTimes.get(i),dead=deathStart!==undefined&&now>=deathStart;const collapse=deathPose(dead?(now-deathStart)/1000*(window.animationRate||1):0);const body=p.userData.body;body.rotation.z=collapse.fall*.12;body.rotation.x=-collapse.fall*1.3;body.position.set(collapse.fall*.12,.75+collapse.fall*.10,-collapse.fall*.55);p.userData.eyes.scale.y=dead?.12:blink?.12:1;const head=p.userData.head;if(head){head.rotation.y=mutedMotion?0:Math.sin(time*.7+i*2)*.07;head.rotation.x=dead?.25:waitingShot?-.09+Math.sin(time*9)*.013:reaction?.kind==='click'&&elapsed>1.65?Math.sin((elapsed-1.65)*4)*.10:0;head.rotation.z=dead?.13:0}});
   if(view==='seat'||view==='spectator'){camera.position.set(Math.sin(a)*3.15,1.82,Math.cos(a)*3.15);camera.rotation.order='YXZ';camera.rotation.set(lookPitch,lookYaw+a,0);hands.visible=true}else{camera.position.set(Math.sin(lookYaw+a)*6,5+lookPitch*2,Math.cos(lookYaw+a)*6);camera.lookAt(0,.9,0);hands.visible=false}
 
@@ -140,7 +140,8 @@ function init(){
   const rolling=tableMode==='dice'&&dealTime<1.5;poisonGlass.position.set(-.76,1.055,1.75);poisonGlass.rotation.z=0;
   cup.position.set(rolling&&!mutedMotion?Math.sin(dealTime*35)*.035:0,1.05+peekAmount*.38,1.4-peekAmount*.18);cup.rotation.z=rolling&&!mutedMotion?Math.sin(dealTime*30)*.1:peekAmount*-.24;
   dice.forEach((d,i)=>{d.position.set((i%3-1)*.11,1.095,1.36+Math.floor(i/3)*.11);d.visible=tableMode==='dice'&&(privateOpen||peekAmount>.15);d.rotation.set(0,0,0);if(rolling&&!mutedMotion){d.position.y+=Math.abs(Math.sin(dealTime*17+i))*.12;d.rotation.set(dealTime*12+i,dealTime*9,dealTime*15)}});
-  cards.forEach((c,i)=>{if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;const slot=i-(handSize-1)/2;const target=cardTarget.set(slot*.40*ease,1.08+Math.sin(t*Math.PI)*.18+(selectedCards.includes(i)?.075:0),1.05+ease*.38+Math.abs(slot)*.025);c.position.lerp(target,mutedMotion?1:blend);c.rotation.set(Math.PI*(1-peekAmount),slot*.045,0);});
+  const showingEvidence=tableMode==='deck'&&now<revealUntil;document.body.classList.toggle('showing-evidence',showingEvidence);
+  cards.forEach((c,i)=>{c.visible=['deck','poker'].includes(tableMode)&&i<handSize&&!showingEvidence;if(!c.visible)return;const t=mutedMotion?1:Math.max(0,Math.min(1,(dealTime-i*.15)/.65));const ease=1-(1-t)**3;const slot=i-(handSize-1)/2;const target=cardTarget.set(slot*.40*ease,1.08+Math.sin(t*Math.PI)*.18+(selectedCards.includes(i)?.075:0),1.05+ease*.38+Math.abs(slot)*.025);c.position.lerp(target,mutedMotion?1:blend);c.rotation.set(Math.PI*(1-peekAmount),slot*.045,0);});
   if(Math.abs(camera.fov-lookZoom)>.01){camera.fov=lookZoom;camera.updateProjectionMatrix();}flashLight.intensity=0;guns.forEach(g=>{g.userData.flash.visible=false;g.rotation.set(0,-.35,Math.PI/2);g.position.set(.63,1.14,-.85)});smoke.forEach(s=>s.material.opacity=0);
   if(effect){let dt=Math.max(0,(now-effect.start)/1000*effect.rate);if(dt>3.5){effect=null;document.body.classList.remove('is-cinematic');document.getElementById('sceneEvent').textContent='';if(effectQueue.length){let next=effectQueue.shift();fire(next.kind,next.who)}}else{
    const firstPerson=effect.who===currentSeat&&view==='seat',gun=firstPerson?ownGun:guns[effect.who];

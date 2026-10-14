@@ -53,3 +53,6 @@
 
 /* Avoid repeated GPU backdrop filters on the animated scene. */
 .performance-mode .game-screen .player,.performance-mode .game-screen .play-dock,.performance-mode .camera-tools button{backdrop-filter:none}.performance-mode .game-screen .player{background:#17111bea}.performance-mode .game-screen .play-dock{background:#130f17f5}
+
+/* Resolved cards and a new hand must never appear as one deck. */
+.showing-evidence #privateArea,.showing-evidence #peekHand{visibility:hidden;pointer-events:none}.showing-evidence .hand-toolbar:before{content:"Revealing the previous hand…";font-size:11px;color:#e6c590}
